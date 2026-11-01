@@ -26,7 +26,6 @@ function tone(f: number, at: number, length: number, gain: number) {
 
 export function beep() {
   try {
-    navigator.vibrate?.(180);
     tone(784, 0, 0.16, 0.22);
     tone(1175, 0.17, 0.22, 0.22);
   } catch {
@@ -57,7 +56,6 @@ let hapticLabel: HTMLLabelElement | undefined;
 /** Safari gives a light tap on a native switch: the only haptic a web page can ask for. */
 export function haptic() {
   try {
-    navigator.vibrate?.(12);
     if (!hapticLabel) {
       const input = document.createElement('input');
       input.type = 'checkbox';

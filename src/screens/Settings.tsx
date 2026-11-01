@@ -26,16 +26,22 @@ export function Connect({ onDone }: { onDone?(): void }) {
     <div className="connect">
       <ol className="guide">
         <li>
-          <b>Crée ton jeton GitHub.</b> Il donne accès à tes données, rien d'autre.
+          <span>
+            <b>Crée ton jeton GitHub.</b> Il donne accès à tes données, rien d'autre.
+          </span>
           <a className="btn ghost" href={TOKEN_URL} target="_blank" rel="noreferrer">
             <IconLink size={18} /> Ouvrir GitHub
           </a>
         </li>
         <li>
-          <b>Dans la page GitHub :</b> Repository access, Only select repositories, choisis <code>{DATA_REPO.repo}</code>. Vérifie que Contents est sur Read and write, puis Generate token.
+          <span>
+            <b>Dans la page GitHub :</b> Repository access, Only select repositories, choisis <code>{DATA_REPO.repo}</code>. Vérifie que Contents est sur Read and write, puis Generate token.
+          </span>
         </li>
         <li>
-          <b>Copie le jeton et colle-le ici.</b>
+          <span>
+            <b>Copie le jeton et colle-le ici.</b>
+          </span>
           <input id="token" type="password" autoComplete="off" autoCapitalize="off" spellCheck={false} placeholder="github_pat_…" value={token} onChange={(e) => setToken(e.target.value)} />
         </li>
       </ol>
@@ -66,10 +72,14 @@ function HealthGuide() {
       <p className="muted">{healthAt ? `Dernier envoi reçu le ${new Date(healthAt).toLocaleDateString('fr-FR')} à ${new Date(healthAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.` : 'Aucun envoi reçu pour l\'instant.'}</p>
       <ol className="guide">
         <li>
-          <b>Yazio vers Santé.</b> Dans Réglages de l'iPhone, Santé, Accès aux données, Yazio : autorise tout ce qui concerne la nutrition.
+          <span>
+            <b>Yazio vers Santé.</b> Dans Réglages de l'iPhone, Santé, Accès aux données, Yazio : autorise tout ce qui concerne la nutrition.
+          </span>
         </li>
         <li>
-          <b>Copie ton jeton</b> : le Raccourci te le demandera.
+          <span>
+            <b>Copie ton jeton</b> : le Raccourci te le demandera.
+          </span>
           <button
             type="button"
             className="btn ghost"
@@ -82,16 +92,22 @@ function HealthGuide() {
           </button>
         </li>
         <li>
-          <b>Installe le Raccourci</b> et colle le jeton quand il te le demande.
+          <span>
+            <b>Installe le Raccourci</b> et colle le jeton quand il te le demande.
+          </span>
           <a className="btn ghost" href={SHORTCUT_URL}>
             <IconHeart size={18} /> Installer Fonte Sante
           </a>
         </li>
         <li>
-          <b>Lance-le une fois à la main</b> dans l'app Raccourcis, et autorise l'accès à Santé.
+          <span>
+            <b>Lance-le une fois à la main</b> dans l'app Raccourcis, et autorise l'accès à Santé.
+          </span>
         </li>
         <li>
-          <b>Automatise.</b> App Raccourcis, Automatisation, +, App, Yazio, Est fermée, Exécuter immédiatement, puis choisis Fonte Sante. Fais pareil avec Fonte, Est ouverte.
+          <span>
+            <b>Automatise.</b> App Raccourcis, Automatisation, +, App, Yazio, Est fermée, Exécuter immédiatement, puis choisis Fonte Sante. Refais la même avec Yazio, Est ouverte.
+          </span>
         </li>
       </ol>
       <p className="muted">Tes pas viennent de l'iPhone, via Santé : StepsApp n'est pas nécessaire. Santé donne les totaux du jour, pas le nom des aliments.</p>

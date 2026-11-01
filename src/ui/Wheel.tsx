@@ -69,18 +69,16 @@ export function Wheel({ label, values, value, onChange, format = String, onEdit,
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
   const onScroll = () => {
+    const el = box.current;
+    if (!el) return;
+    const i = Math.min(latest.current.values.length - 1, Math.max(0, Math.round(el.scrollTop / row)));
+    if (i !== index.current) {
+      index.current = i;
+      tick();
+      latest.current.onChange(latest.current.values[i]);
+    }
     cancelAnimationFrame(frame.current);
-    frame.current = requestAnimationFrame(() => {
-      const el = box.current;
-      if (!el) return;
-      paint();
-      const i = Math.min(latest.current.values.length - 1, Math.max(0, Math.round(el.scrollTop / row)));
-      if (i !== index.current) {
-        index.current = i;
-        tick();
-        latest.current.onChange(latest.current.values[i]);
-      }
-    });
+    frame.current = requestAnimationFrame(paint);
   };
 
   const go = (i: number) => box.current?.scrollTo({ top: i * row, behavior: 'smooth' });
