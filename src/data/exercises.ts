@@ -1,0 +1,105 @@
+import type { ExerciseDef } from '../core/types';
+
+const list: ExerciseDef[] = [
+  { id: 'squat', name: 'Squat', kind: 'barbell', lift: 'squat', muscles: { quads: 1, fessiers: 1, erecteurs: 0.5 }, step: 2.5, rest: 240 },
+  { id: 'bench2ct', name: 'Bench 2CT', kind: 'barbell', lift: 'bench', muscles: { pecs: 1, triceps: 0.5, deltAnt: 0.5 }, step: 2.5, rest: 210 },
+  { id: 'bench', name: 'Bench', kind: 'barbell', lift: 'bench', muscles: { pecs: 1, triceps: 0.5, deltAnt: 0.5 }, step: 2.5, rest: 180 },
+  { id: 'closeGrip', name: 'Bench close grip', kind: 'barbell', tm: 'bench', muscles: { triceps: 1, pecs: 0.5, deltAnt: 0.5 }, step: 2.5, rest: 150 },
+  { id: 'deadlift', name: 'Deadlift', kind: 'barbell', lift: 'deadlift', muscles: { erecteurs: 1, fessiers: 0.5, ischios: 0.5, traps: 0.5 }, step: 2.5, rest: 270 },
+  { id: 'smithIncline', name: 'Smith haut de pecs', kind: 'smith', muscles: { pecs: 1, deltAnt: 0.5, triceps: 0.5 }, step: 2.5, rest: 120 },
+  { id: 'dips', name: 'Dips bas de pecs', kind: 'bodyweight', muscles: { pecs: 1, triceps: 0.5 }, step: 2.5, rest: 120 },
+  { id: 'extV', name: 'Extension triceps barre V', kind: 'cable', muscles: { triceps: 1 }, step: 2.5, rest: 90 },
+  { id: 'pecFly', name: 'Pec fly', kind: 'machine', muscles: { pecs: 1 }, step: 2.5, rest: 90 },
+  { id: 'tractions', name: 'Tractions', kind: 'bodyweight', muscles: { dos: 1, biceps: 0.5, traps: 0.5 }, step: 2.5, rest: 150 },
+  { id: 'dm', name: 'Développé militaire', kind: 'barbell', muscles: { deltAnt: 1, triceps: 0.5, deltLat: 0.5 }, step: 2.5, rest: 150 },
+  { id: 'oiseau', name: 'Oiseau poulie', kind: 'cable', muscles: { deltPost: 1 }, step: 1, rest: 75 },
+  { id: 'elevMachine', name: 'Élévation latérale machine', kind: 'machine', muscles: { deltLat: 1 }, step: 2.5, rest: 75 },
+  { id: 'elevHalteres', name: 'Élévation latérale haltères', kind: 'dumbbell', muscles: { deltLat: 1 }, step: 1, rest: 75 },
+  { id: 'elevPoulie', name: 'Élévation latérale poulie', kind: 'cable', muscles: { deltLat: 1 }, step: 1, rest: 75 },
+  { id: 'marteau', name: 'Curl marteau haltères', kind: 'dumbbell', muscles: { biceps: 1 }, step: 1, rest: 75 },
+  { id: 'bayesian', name: 'Curl Bayesian', kind: 'cable', muscles: { biceps: 1 }, step: 1, rest: 75 },
+  { id: 'pupitre', name: 'Curl pupitre unilatéral', kind: 'dumbbell', muscles: { biceps: 1 }, step: 1, rest: 75 },
+  { id: 'curlPoulie', name: 'Curl poulie', kind: 'cable', muscles: { biceps: 1 }, step: 1, rest: 75 },
+  { id: 'tirageLarge', name: 'Tirage vertical large', kind: 'cable', muscles: { dos: 1, biceps: 0.5, traps: 0.5 }, step: 2.5, rest: 105 },
+  { id: 'tirageNeutre', name: 'Tirage vertical neutre', kind: 'cable', muscles: { dos: 1, biceps: 0.5, traps: 0.5 }, step: 2.5, rest: 105 },
+  { id: 'tirageHNeutre', name: 'Tirage horizontal neutre', kind: 'cable', muscles: { dos: 1, biceps: 0.5, deltPost: 0.5, traps: 0.5 }, step: 2.5, rest: 105 },
+  { id: 'tirageHUni', name: 'Tirage horizontal unilatéral', kind: 'cable', muscles: { dos: 1, biceps: 0.5, deltPost: 0.5, traps: 0.5 }, step: 2.5, rest: 105 },
+  { id: 'tirageHaut', name: 'Tirage unilatéral poulie haute', kind: 'cable', muscles: { dos: 1, biceps: 0.5 }, step: 2.5, rest: 90 },
+  { id: 'facePull', name: 'Face pull', kind: 'cable', muscles: { deltPost: 1, traps: 0.5 }, step: 2.5, rest: 75 },
+  { id: 'extOverhead', name: 'Extension triceps au-dessus de la tête', kind: 'cable', muscles: { triceps: 1 }, step: 2.5, rest: 90 },
+  { id: 'extUni', name: 'Extension triceps unilatérale poulie', kind: 'cable', muscles: { triceps: 1 }, step: 1, rest: 75 },
+  { id: 'rdl', name: 'RDL', kind: 'barbell', muscles: { ischios: 1, fessiers: 0.5, erecteurs: 0.5 }, step: 2.5, rest: 150 },
+  { id: 'legCurl', name: 'Leg curl assis', kind: 'machine', muscles: { ischios: 1 }, step: 2.5, rest: 90 },
+  { id: 'pendulum', name: 'Pendulum squat', kind: 'machine', muscles: { quads: 1, fessiers: 0.5 }, step: 5, rest: 150 },
+  { id: 'legExt', name: 'Leg extension', kind: 'machine', muscles: { quads: 1 }, step: 2.5, rest: 90 },
+  { id: 'abduction', name: 'Abduction', kind: 'machine', muscles: { fessiers: 1 }, step: 2.5, rest: 60 },
+  { id: 'mollets', name: 'Mollets debout', kind: 'machine', muscles: { mollets: 1 }, step: 2.5, rest: 75 },
+  { id: 'abdos', name: 'Abdos', kind: 'machine', muscles: { abdos: 1 }, step: 2.5, rest: 60 },
+];
+
+/** One-line cue shown during the set. */
+export const CUES: Record<string, string> = {
+  bench2ct: '2CT : pause de 2 secondes sur la poitrine à chaque rep.',
+  bench: 'Pause courte sur la poitrine, pieds ancrés.',
+  closeGrip: 'Mains à largeur d\'épaules, coudes près du corps.',
+  squat: 'Low bar, ceinture serrée, profondeur réelle.',
+  deadlift: 'Barre contre les tibias, dos gainé avant de tirer.',
+  dips: 'Buste penché pour viser le bas des pecs.',
+  rdl: 'Jambes presque tendues, tu pousses les hanches en arrière.',
+  elevMachine: 'Monte jusqu\'à l\'horizontale, sans élan.',
+  facePull: 'Tire vers le front, coudes hauts.',
+};
+
+export const EXERCISES: Record<string, ExerciseDef> = Object.fromEntries(list.map((e) => [e.id, e]));
+
+export const REPLACEMENTS: Record<string, string[]> = {
+  pendulum: ['legExt'],
+  smithIncline: ['pecFly', 'dips'],
+  dips: ['smithIncline', 'pecFly'],
+  tirageLarge: ['tirageNeutre', 'tractions'],
+  tractions: ['tirageLarge', 'tirageNeutre'],
+  tirageHUni: ['tirageHNeutre'],
+  tirageHNeutre: ['tirageHUni'],
+  elevMachine: ['elevPoulie', 'elevHalteres'],
+  elevPoulie: ['elevHalteres', 'elevMachine'],
+  elevHalteres: ['elevPoulie', 'elevMachine'],
+  bayesian: ['curlPoulie', 'pupitre'],
+  curlPoulie: ['bayesian', 'pupitre'],
+  marteau: ['curlPoulie'],
+  extV: ['extUni', 'extOverhead'],
+  extOverhead: ['extV', 'extUni'],
+  legCurl: ['rdl'],
+  rdl: ['legCurl'],
+};
+
+export const MUSCLE_LABEL: Record<string, string> = {
+  pecs: 'Pectoraux',
+  dos: 'Dos',
+  deltLat: 'Deltoïde latéral',
+  deltPost: 'Deltoïde postérieur',
+  deltAnt: 'Deltoïde antérieur',
+  traps: 'Trapèzes',
+  triceps: 'Triceps',
+  biceps: 'Biceps',
+  quads: 'Quadriceps',
+  ischios: 'Ischios',
+  fessiers: 'Fessiers',
+  mollets: 'Mollets',
+  abdos: 'Abdominaux',
+  erecteurs: 'Érecteurs',
+};
+
+/** Weekly fractional sets: minimum, useful zone, ceiling. Design values. */
+export const VOLUME_TABLE: { muscle: string; min: number; low: number; high: number; cap: number }[] = [
+  { muscle: 'pecs', min: 4, low: 10, high: 16, cap: 20 },
+  { muscle: 'dos', min: 6, low: 10, high: 18, cap: 22 },
+  { muscle: 'deltLat', min: 4, low: 8, high: 14, cap: 20 },
+  { muscle: 'deltPost', min: 2, low: 6, high: 10, cap: 16 },
+  { muscle: 'triceps', min: 4, low: 8, high: 14, cap: 20 },
+  { muscle: 'biceps', min: 4, low: 8, high: 14, cap: 20 },
+  { muscle: 'quads', min: 6, low: 10, high: 16, cap: 20 },
+  { muscle: 'ischios', min: 4, low: 8, high: 12, cap: 16 },
+  { muscle: 'fessiers', min: 2, low: 6, high: 12, cap: 16 },
+  { muscle: 'mollets', min: 4, low: 8, high: 12, cap: 16 },
+  { muscle: 'abdos', min: 0, low: 4, high: 8, cap: 12 },
+];
