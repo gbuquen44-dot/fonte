@@ -2463,6 +2463,11 @@ button.card:active {
 
 /* Settings and first launch */
 
+.install p {
+  color: var(--ink-2);
+  font-size: 15.5px;
+}
+
 .settings {
   display: flex;
   flex-direction: column;

@@ -111,6 +111,7 @@ function HealthGuide() {
         </li>
       </ol>
       <p className="muted">Tes pas viennent de l'iPhone, via Santé : StepsApp n'est pas nécessaire. Santé donne les totaux du jour, pas le nom des aliments.</p>
+      <p className="muted">Si tes pas arrivent mais pas tes calories, ouvre Santé, Parcourir, Nutrition, Énergie alimentaire. Si c'est vide, Yazio n'envoie rien à Santé. Si c'est rempli, ouvre le Raccourci et vérifie le type de chaque recherche.</p>
     </div>
   );
 }
@@ -254,12 +255,19 @@ const DEFAULT_MAXES: Record<LiftKey, number> = { squat: 100, bench: 70, deadlift
 
 /** First launch: bring the saved data, or start alone on this phone. */
 export function Setup() {
+  const inSafari = /iPhone|iPad/.test(navigator.userAgent) && !(navigator as unknown as { standalone?: boolean }).standalone;
   const [mode, setMode] = useState<'connect' | 'local'>('connect');
   const [tm, setTm] = useState(DEFAULT_MAXES);
   const [pad, setPad] = useState<LiftKey | null>(null);
   return (
     <div className="setup">
       <h1>Fonte</h1>
+      {inSafari ? (
+        <div className="card install">
+          <h2>Installe-la d'abord</h2>
+          <p>Touche Partager dans Safari, puis Sur l'écran d'accueil. Ouvre ensuite Fonte depuis son icône et continue là-bas.</p>
+        </div>
+      ) : null}
       {mode === 'connect' ? (
         <>
           <p>Connecte ta sauvegarde : ton programme, tes charges et tes données arrivent tout seuls. 2 minutes, une seule fois.</p>
