@@ -142,11 +142,15 @@ export interface Maintenance {
 
 const RHO = 7700;
 
+/** Olive oil he eats every day and does not log in Yazio. */
+export const UNLOGGED_FAT = 10;
+const UNLOGGED_KCAL = 90;
+
 export function estimateMaintenance(p: Profile, days: Record<ISODate, DayLog>, end: ISODate): Maintenance {
   const fallback: Maintenance = { value: p.maintenance, low: p.maintenanceLow, high: p.maintenanceHigh, source: 'estimate' };
   const w = readWindow(days, end, 28, gelDates(p));
   if (!w || w.weighIns < 12 || w.kcalDays < 14 || w.meanKcal === null || w.windowDays < 21) return fallback;
-  const value = w.meanKcal - RHO * w.reg.slope;
+  const value = w.meanKcal + UNLOGGED_KCAL - RHO * w.reg.slope;
   const n = w.reg.spanDays;
   const se = w.reg.sigma * Math.sqrt(12 / (n ** 3 - n)) * 1.6;
   const half = 1.96 * RHO * se;
@@ -252,10 +256,12 @@ export interface Macros {
   carbs: number;
 }
 
-/** Protein holds at 140 g, fat climbs slowly, the rest goes to carbs. */
+export const fatFloor = (weight: number) => Math.round(weight * 0.6);
+
+/** Protein holds at 140 g, fat at 0.6 g per kilo, the rest goes to carbs. The calorie target excludes the unlogged oil. */
 export function macrosFor(kcal: number, weight: number): Macros {
   const protein = Math.round(Math.max(weight * 2, 140) / 5) * 5;
-  const fat = kcal >= 2600 ? 65 : kcal >= 2400 ? 60 : kcal >= 2200 ? 55 : 50;
-  const carbs = Math.round((kcal - protein * 4 - fat * 9) / 4 / 5) * 5;
+  const fat = fatFloor(weight);
+  const carbs = Math.round((kcal - protein * 4 - (fat - UNLOGGED_FAT) * 9) / 4 / 5) * 5;
   return { protein, fat, carbs };
 }

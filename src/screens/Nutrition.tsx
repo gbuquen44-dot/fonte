@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { updateDay, updateProfile, useApp } from '../state/store';
 import { addDays, dayMonth, longDate, shortDate, type ISODate } from '../core/dates';
-import { estimateMaintenance, ewma, gelEnd, macrosFor, mondayDecision, targetKcal, weighIns } from '../core/energy';
+import { estimateMaintenance, ewma, gelEnd, macrosFor, mondayDecision, targetKcal, UNLOGGED_FAT, weighIns } from '../core/energy';
 import type { DayLog } from '../core/types';
 import { fr1, int, Keypad, kg, Ring, Segmented, Sheet, SheetHead } from '../ui/controls';
 import { TimeChart } from '../ui/Chart';
@@ -65,14 +65,14 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
           </p>
           <Bar label="Protéines" value={day?.protein} target={macros.protein} color="var(--sky)" />
           <Bar label="Glucides" value={day?.carbs} target={macros.carbs} color="var(--mint)" />
-          <Bar label="Lipides" value={day?.fat} target={macros.fat} color="var(--amber)" />
+          <Bar label="Lipides" value={day?.fat === undefined ? undefined : day.fat + UNLOGGED_FAT} target={macros.fat} color="var(--amber)" />
         </div>
       </section>
       <button type="button" className="btn ghost" onClick={onEntry}>
         {day?.kcal !== undefined ? 'Corriger ma journée' : 'Noter ma journée à la main'}
       </button>
       <p className="source">
-        {day?.healthAt ? `Reçu de Santé à ${new Date(day.healthAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.` : healthAt ? 'Pas encore de repas reçus de Santé aujourd\'hui.' : 'Santé n\'est pas encore branché. Tout se règle dans Réglages.'}
+        {day?.healthAt ? `Reçu de Yazio à ${new Date(day.healthAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.` : healthAt ? 'Pas encore de repas reçus de Yazio aujourd\'hui.' : 'Tes repas arrivent de Yazio tout seuls.'}
       </p>
 
       <section className="card">
@@ -110,7 +110,7 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
             <b>Protéines : {macros.protein} g.</b> Tu y es déjà, garde ce cap.
           </li>
           <li>
-            <b>Lipides : {macros.fat} g.</b> Tes 40 à 50 g tiennent, mais c'est le bas de la fourchette. Ils montent un peu avec les calories.
+            <b>Lipides : {macros.fat} g.</b> 0,6 g par kilo de poids de corps. Ce repère suit ton poids.
           </li>
           <li>
             <b>Glucides : {macros.carbs} g.</b> C'est là que va la hausse, ce sont eux qui nourrissent tes séances.

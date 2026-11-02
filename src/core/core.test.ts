@@ -441,7 +441,7 @@ describe('energy', () => {
     const days = weighSeries('2026-11-23', 22, 68, 0.03, 2400, 0.05);
     const m = estimateMaintenance(profile(), days, '2026-12-14');
     expect(m.source).toBe('data');
-    expect(m.value).toBeCloseTo(2400 - 7700 * 0.03, -1);
+    expect(m.value).toBeCloseTo(2400 + 90 - 7700 * 0.03, -1);
     expect(m.low).toBeLessThan(m.value);
   });
 
@@ -452,9 +452,9 @@ describe('energy', () => {
   it('builds macros that add up', () => {
     for (const k of [2000, 2200, 2400, 2700]) {
       const m = macrosFor(k, 72.4);
-      expect(Math.abs(m.protein * 4 + m.fat * 9 + m.carbs * 4 - k)).toBeLessThan(25);
+      expect(Math.abs(m.protein * 4 + (m.fat - 10) * 9 + m.carbs * 4 - k)).toBeLessThan(25);
       expect(m.protein).toBe(145);
-      expect(m.fat).toBeGreaterThanOrEqual(50);
+      expect(m.fat).toBe(43);
     }
   });
 
@@ -543,6 +543,20 @@ describe('tip of the day', () => {
       days[date] = { date, sleepH: 4, updatedAt: 0 };
     }
     expect(tipOfDay(ctx(days)).id).not.toMatch(/^sleep/);
+  });
+  it('counts the unlogged oil before warning on fat', () => {
+    const week = (fat: number) => {
+      const days: Record<string, DayLog> = { '2026-11-03': { date: '2026-11-03', weight: 68, updatedAt: 0 } };
+      for (const date of ['2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02']) {
+        days[date] = { date, fat, updatedAt: 0 };
+      }
+      return days;
+    };
+    expect(tipOfDay(ctx(week(32))).id).not.toBe('fat');
+    const tip = tipOfDay(ctx(week(25)));
+    expect(tip.id).toBe('fat');
+    expect(tip.title).toBe('35 g de lipides par jour');
+    expect(tip.body).toContain('41 g');
   });
   it('announces a calorie step on its day', () => {
     expect(tipOfDay(ctx({}, '2026-11-07')).id).toBe('kcal-step');

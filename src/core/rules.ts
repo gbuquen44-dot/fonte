@@ -1,6 +1,6 @@
 import { addDays, dateRange, diffDays, type ISODate } from './dates';
 import type { DayLog, PlannedSession, Profile, SessionLog } from './types';
-import { gelEnd, mean7, nextStep, targetKcal } from './energy';
+import { fatFloor, gelEnd, mean7, nextStep, targetKcal, UNLOGGED_FAT } from './energy';
 import { SCIENCE } from '../data/science';
 
 export type Origin = 'Étude' | 'Terrain' | 'Conception' | 'Tes données' | 'Sécurité';
@@ -67,8 +67,9 @@ export function tipOfDay(c: TipContext): Tip {
   }
 
   const fat = mean7(days, addDays(today, -1), 'fat');
-  if (fat !== null && fat < 40) {
-    return { id: 'fat', origin: 'Terrain', title: `${Math.round(fat)} g de lipides par jour`, body: 'Vise au moins 50 g. En remontée, garder un peu de gras aide tes hormones et ton énergie.' };
+  const kg = w ?? avg;
+  if (fat !== null && kg !== null && fat + UNLOGGED_FAT < fatFloor(kg)) {
+    return { id: 'fat', origin: 'Terrain', title: `${Math.round(fat + UNLOGGED_FAT)} g de lipides par jour`, body: `Vise au moins ${fatFloor(kg)} g, soit 0,6 g par kilo de poids de corps. En remontée, garder un peu de gras aide tes hormones et ton énergie.` };
   }
 
   const stress = dateRange(today, 7).filter((d) => (days[d]?.stress ?? 0) >= 3).length;
