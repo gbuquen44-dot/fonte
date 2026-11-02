@@ -121,7 +121,7 @@ export function Settings({ open, onClose }: { open: boolean; onClose(): void }) 
 
           <h3>Pas, calories et repas</h3>
           <p className="muted">
-            {linked ? 'Ils arrivent de Yazio tout seuls, environ toutes les heures.' : 'Connecte ta sauvegarde pour les recevoir de Yazio.'}
+            {linked ? 'Ils arrivent de Yazio tout seuls, environ une minute après l\'ouverture de l\'appli.' : 'Connecte ta sauvegarde pour les recevoir de Yazio.'}
             {linked && healthAt ? ` Dernière réception le ${new Date(healthAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à ${new Date(healthAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.` : ''}
           </p>
 

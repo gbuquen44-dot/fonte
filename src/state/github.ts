@@ -91,6 +91,11 @@ export async function writeText(c: GhConfig, path: string, text: string, sha?: s
   }
 }
 
+/** Starts a workflow of the repository. The token's write access to contents is enough. */
+export async function dispatch(c: GhConfig, eventType: string): Promise<void> {
+  await call(c, '/dispatches', { method: 'POST', body: JSON.stringify({ event_type: eventType }) });
+}
+
 export async function removeFile(c: GhConfig, path: string, sha?: string): Promise<void> {
   const known = sha ?? (await currentSha(c, path));
   if (!known) return;

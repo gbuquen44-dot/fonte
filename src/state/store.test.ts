@@ -12,7 +12,7 @@ function fakeGitHub(seed: Record<string, unknown> = {}) {
     return sha;
   };
   for (const [path, body] of Object.entries(seed)) put(path, typeof body === 'string' ? body : JSON.stringify(body));
-  const state = { failNext: 0, writes: [] as string[], deletes: [] as string[], denied: false };
+  const state = { failNext: 0, writes: [] as string[], deletes: [] as string[], denied: false, dispatches: 0 };
   const res = (status: number, body: unknown) => new Response(typeof body === 'string' ? body : JSON.stringify(body), { status });
   const fetcher = async (url: string, init: RequestInit = {}) => {
     if (state.denied) return res(401, 'Bad credentials');
@@ -22,6 +22,10 @@ function fakeGitHub(seed: Record<string, unknown> = {}) {
     }
     const path = new URL(url).pathname.replace('/repos/gbuquen44-dot/fonte-data', '');
     const method = init.method ?? 'GET';
+    if (path === '/dispatches') {
+      state.dispatches++;
+      return new Response(null, { status: 204 });
+    }
     if (path.startsWith('/git/trees/')) return res(200, { tree: [...files].map(([p, f]) => ({ path: p, type: 'blob', sha: f.sha })) });
     if (path.startsWith('/git/blobs/')) {
       const sha = path.split('/').pop();
@@ -108,6 +112,19 @@ describe('copy in the repository', () => {
     const store = await load(hub);
     expect(Object.keys(store.getData().sessions)).toEqual(['pleine']);
     expect(hub.state.deletes).toContain('sessions/vide.json');
+  });
+
+  it('asks for a Yazio read when it opens, at most every 20 minutes', async () => {
+    const hub = fakeGitHub({ 'profile/main.json': PROFILE });
+    const store = await load(hub);
+    expect(hub.state.dispatches).toBe(1);
+    await store.pull(true);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(hub.state.dispatches).toBe(1);
+    await vi.advanceTimersByTimeAsync(21 * 60_000);
+    await store.pull(true);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(hub.state.dispatches).toBe(2);
   });
 
   it('calls a session forgotten after 6 hours', async () => {

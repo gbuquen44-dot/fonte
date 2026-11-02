@@ -3,7 +3,7 @@ import type { DayLog, PlannedSession, Profile, SessionLog } from '../core/types'
 import { todayISO, type ISODate } from '../core/dates';
 import { createSession } from '../core/session';
 import { healthPatch, parseHealthExport } from '../core/health';
-import { GhError, listFiles, readText, removeFile, writeText, type GhConfig, type GhFile } from './github';
+import { dispatch, GhError, listFiles, readText, removeFile, writeText, type GhConfig, type GhFile } from './github';
 
 export interface AppData {
   profile: Profile | null;
@@ -26,6 +26,9 @@ const DIRTY_KEY = 'fonte.dirty.v1';
 const TOKEN_KEY = 'fonte.token.v1';
 const SHA_KEY = 'fonte.sha.v1';
 const HEALTH_KEY = 'fonte.health.v1';
+const YAZIO_KEY = 'fonte.yazio.v1';
+const YAZIO_EVERY = 20 * 60_000;
+const YAZIO_DELAY = 75_000;
 
 export const DATA_REPO = { owner: 'gbuquen44-dot', repo: 'fonte-data' };
 
@@ -296,6 +299,18 @@ async function readInbox(c: GhConfig, files: GhFile[]) {
   }, 1);
 }
 
+/** GitHub's schedule does not fire on this repository: opening the app asks for a fresh read of Yazio. */
+async function askYazio(c: GhConfig) {
+  if (Date.now() - readJson<number>(YAZIO_KEY, 0) < YAZIO_EVERY) return;
+  try {
+    localStorage.setItem(YAZIO_KEY, JSON.stringify(Date.now()));
+    await dispatch(c, 'yazio');
+    setTimeout(() => void pull(true), YAZIO_DELAY);
+  } catch {
+    /* the next opening asks again */
+  }
+}
+
 export async function pull(force = false) {
   const c = conn();
   if (!c || pulling) return;
@@ -323,6 +338,7 @@ export async function pull(force = false) {
     dropEmptySessions();
     setSync(dirty.size ? 'saving' : 'synced', true);
     await readInbox(c, files);
+    void askYazio(c);
     scheduleFlush(300);
   } catch (e) {
     failed(e);
