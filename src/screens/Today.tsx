@@ -92,7 +92,7 @@ export function Today({ onSession, onSettings, onCheckin, onEntry }: { onSession
             <IconCheck size={16} /> Séance faite
           </p>
           <h2>{doneToday.title}</h2>
-          <p className="hero-sub">Mange, dors, et ça pousse.{upcoming ? ` Prochaine séance : ${DAY_LABEL[dayKey(upcoming.date)].toLowerCase()}.` : ''}</p>
+          <p className="hero-sub">Mange, et ça pousse.{upcoming ? ` Prochaine séance : ${DAY_LABEL[dayKey(upcoming.date)].toLowerCase()}.` : ''}</p>
         </section>
       ) : featured ? (
         <SessionCard plan={featured.plan} date={featured.date} soon={soon} block={loc?.block ?? 1} onStart={() => start(featured.plan)} />

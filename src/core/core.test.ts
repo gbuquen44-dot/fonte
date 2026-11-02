@@ -534,15 +534,15 @@ describe('tip of the day', () => {
     planned: buildSession(1, 1, 'tue'),
   });
 
-  it('puts a sleepless night before anything else', () => {
-    expect(tipOfDay(ctx({ '2026-11-03': { date: '2026-11-03', sleepH: 3, updatedAt: 0 } })).id).toBe('sleep-3');
+  it('asks for safeties under 3 h of sleep', () => {
+    expect(tipOfDay(ctx({ '2026-11-03': { date: '2026-11-03', sleepH: 2.5, updatedAt: 0 } })).id).toBe('sleep-3');
   });
-  it('warns on two short nights in a row', () => {
-    const days = {
-      '2026-11-02': { date: '2026-11-02', sleepH: 6, updatedAt: 0 },
-      '2026-11-03': { date: '2026-11-03', sleepH: 5.5, updatedAt: 0 },
-    };
-    expect(tipOfDay(ctx(days)).id).toBe('sleep-chain');
+  it('gives no advice on short nights', () => {
+    const days: Record<string, DayLog> = {};
+    for (const date of ['2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02', '2026-11-03']) {
+      days[date] = { date, sleepH: 4, updatedAt: 0 };
+    }
+    expect(tipOfDay(ctx(days)).id).not.toMatch(/^sleep/);
   });
   it('announces a calorie step on its day', () => {
     expect(tipOfDay(ctx({}, '2026-11-07')).id).toBe('kcal-step');

@@ -43,25 +43,8 @@ export function tipOfDay(c: TipContext): Tip {
     }
   }
 
-  if (typeof h === 'number') {
-    const nights = dateRange(today, 7).map((d) => days[d]?.sleepH);
-    const short = nights.filter((x) => typeof x === 'number' && x <= 6).length;
-    const prev = days[addDays(today, -1)]?.sleepH;
-    if (h <= 3 && planned) {
-      return { id: 'sleep-3', origin: 'Sécurité', title: 'Nuit blanche : pas de lourd', body: 'Décale si tu peux. Sinon technique légère, et rien de lourd sans pareur ni sécurités.' };
-    }
-    if (h <= 6 && typeof prev === 'number' && prev <= 6) {
-      return { id: 'sleep-chain', origin: 'Conception', title: 'Deux nuits courtes de suite', body: 'Sur squat, bench et deadlift, garde 2 reps en réserve et enlève 1 série sur 3 ou 4. Couche-toi 30 min plus tôt ce soir.' };
-    }
-    if (short >= 3) {
-      return { id: 'sleep-37', origin: 'Conception', title: `${short} nuits courtes sur 7`, body: 'Le cumul pèse plus qu\'une mauvaise nuit. Enlève 1 série sur 3 ou 4 sur squat, bench et deadlift.' };
-    }
-    if (h <= 5 && planned) {
-      return { id: 'sleep-5', origin: 'Conception', title: `${String(h).replace('.', ',')} h de sommeil`, body: 'Pas de record aujourd\'hui. Baisse la série lourde de 2,5 à 5 %, et une série de moins sur les gros mouvements.' };
-    }
-    if (h <= 6 && planned) {
-      return { id: 'sleep-6', origin: 'Étude', title: 'Nuit courte, séance maintenue', body: 'Une nuit courte coûte environ 3 % de force. L\'appli te proposera d\'alléger si la barre monte moins bien.' };
-    }
+  if (typeof h === 'number' && h < 3 && planned) {
+    return { id: 'sleep-3', origin: 'Sécurité', title: 'Moins de 3 h de sommeil', body: 'Sur squat et bench, mets les sécurités ou prends un pareur.' };
   }
 
   const plan = [...profile.kcalPlan].sort((a, b) => a.from.localeCompare(b.from));
@@ -88,14 +71,9 @@ export function tipOfDay(c: TipContext): Tip {
     return { id: 'fat', origin: 'Terrain', title: `${Math.round(fat)} g de lipides par jour`, body: 'Vise au moins 50 g. En remontée, garder un peu de gras aide tes hormones et ton énergie.' };
   }
 
-  const h7 = mean7(days, today, 'sleepH');
-  if (h7 !== null && h7 < 7 && Object.values(days).filter((d) => typeof d.sleepH === 'number').length >= 7) {
-    return { id: 'sleep-avg', origin: 'Conception', title: `${h7.toFixed(1).replace('.', ',')} h de sommeil en moyenne`, body: 'Ajoute 30 à 60 min au lit sur 5 nuits. Se sentir bien ne veut pas dire que tu as assez dormi.' };
-  }
-
   const stress = dateRange(today, 7).filter((d) => (days[d]?.stress ?? 0) >= 3).length;
   if (stress >= 3) {
-    return { id: 'stress', origin: 'Conception', title: 'Semaine chargée hors salle', body: 'Garde les charges, pas d\'échec. Enlève quelques séries si tu récupères mal aussi.' };
+    return { id: 'stress', origin: 'Conception', title: 'Semaine chargée hors salle', body: 'Garde les charges, pas d\'échec. Si tu récupères mal, enlève d\'abord de l\'isolation.' };
   }
 
   if (planned && planned.exercises.length > 3) {
