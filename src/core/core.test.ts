@@ -27,7 +27,7 @@ import { estimateMaintenance, ewma, gelDates, gelEnd, macrosFor, mondayDecision,
 import { plannedVolume } from './volume';
 import { analyze, evidence, fitEffect, sessionPerformance } from './insights';
 import { tipOfDay } from './rules';
-import type { DayLog, Profile, SessionLog } from './types';
+import type { DayLog, Profile, SessionKey, SessionLog } from './types';
 
 const TM = { squat: 135, bench: 85, deadlift: 175 };
 
@@ -134,15 +134,70 @@ describe('program', () => {
     }
   });
 
-  it('keeps block 1 around 75 hard sets and block 2 near 85', () => {
-    for (const w of [1, 2, 3]) {
+  it('keeps the validated week: 44 exercises and 109 hard sets, plus the optional bench', () => {
+    const week = buildWeek(1, 1);
+    expect(week.flatMap((s) => s.exercises)).toHaveLength(45);
+    expect(week.reduce((a, s) => a + hardSets(s), 0)).toBe(111);
+    for (const w of [2, 3, 4]) {
       const total = buildWeek(1, w).reduce((a, s) => a + hardSets(s), 0);
-      expect(total).toBeGreaterThanOrEqual(68);
-      expect(total).toBeLessThanOrEqual(78);
+      expect(total).toBeGreaterThanOrEqual(105);
+      expect(total).toBeLessThanOrEqual(115);
     }
-    const t2 = buildWeek(2, 1).reduce((a, s) => a + hardSets(s), 0);
-    expect(t2).toBeGreaterThanOrEqual(80);
-    expect(t2).toBeLessThanOrEqual(90);
+  });
+
+  it('matches the week validated in the chat', () => {
+    const tm = { squat: 135, bench: 85, deadlift: 175 };
+    const names = (k: SessionKey) => buildSession(1, 1, k).exercises.map((e) => e.exId);
+    const kilos = (k: SessionKey, id: string) => planRows(buildSession(1, 1, k).exercises.find((e) => e.exId === id)!, tm).map((r) => [r.count, r.reps, r.load]);
+    const sets = (k: SessionKey) => buildSession(1, 1, k).exercises.filter((e) => e.sets[0].type === 'acc').map((e) => [e.exId, e.sets.length, e.sets[0].reps, e.sets[0].repsMax]);
+
+    expect(names('tue')).toEqual(['squat', 'bench2ct', 'deadlift', 'pendulum', 'legExt', 'legCurl', 'abduction', 'abdos']);
+    expect(kilos('tue', 'squat')).toEqual([[1, 1, 105], [1, 1, 115], [1, 1, 122.5], [2, 5, 105]]);
+    expect(kilos('tue', 'bench2ct')).toEqual([[1, 1, 67.5], [1, 1, 72.5], [1, 1, 77.5], [3, 5, 67.5]]);
+    expect(kilos('tue', 'deadlift')).toEqual([[1, 5, 105], [1, 5, 120], [2, 5, 132.5]]);
+    expect(sets('tue')).toEqual([['pendulum', 2, 8, 10], ['legExt', 2, 10, 12], ['legCurl', 3, 10, 12], ['abduction', 2, 12, 15], ['abdos', 2, 10, 15]]);
+
+    expect(names('wed')).toEqual(['closeGrip', 'tractions', 'dm', 'tirageNeutre', 'tirageHNeutre', 'oiseau', 'elevMachine', 'avantEpaule', 'marteau', 'elevHalteres', 'bayesian', 'pupitre']);
+    expect(kilos('wed', 'closeGrip')).toEqual([[1, 3, 57.5], [1, 3, 62.5], [2, 3, 67.5]]);
+    expect(sets('wed')).toEqual([['tractions', 3, 6, 10], ['dm', 3, 6, 8], ['tirageNeutre', 2, 8, 12], ['tirageHNeutre', 2, 8, 12], ['oiseau', 2, 12, 15], ['elevMachine', 3, 12, 15], ['avantEpaule', 2, 10, 12], ['marteau', 3, 10, 12], ['elevHalteres', 3, 12, 15], ['bayesian', 2, 10, 12], ['pupitre', 2, 10, 12]]);
+
+    expect(names('fri')).toEqual(['squat', 'bench', 'benchHalteres2ct', 'deadlift', 'smithIncline', 'rdl', 'mollets']);
+    expect(kilos('fri', 'squat')).toEqual([[1, 1, 105], [1, 1, 112.5], [1, 1, 122.5], [2, 1, 122.5]]);
+    expect(kilos('fri', 'bench')).toEqual([[1, 1, 67.5], [1, 1, 72.5], [1, 1, 77.5], [2, 1, 77.5]]);
+    expect(kilos('fri', 'deadlift')).toEqual([[1, 1, 137.5], [1, 1, 147.5], [1, 1, 157.5], [2, 1, 157.5]]);
+    expect(sets('fri')).toEqual([['benchHalteres2ct', 2, 8, 10], ['smithIncline', 2, 8, 10], ['rdl', 3, 8, 8], ['mollets', 4, 12, 15]]);
+
+    expect(names('sat')).toEqual(['tractions', 'tirageLarge', 'tirageHUni', 'tirageHaut', 'facePull', 'avantEpaule', 'curlPoulie', 'extOverhead', 'bayesian', 'extUni', 'elevPoulie']);
+    expect(sets('sat')).toEqual([['tractions', 2, 6, 10], ['tirageLarge', 2, 8, 12], ['tirageHUni', 2, 8, 12], ['tirageHaut', 2, 10, 12], ['facePull', 2, 12, 15], ['avantEpaule', 2, 10, 12], ['curlPoulie', 3, 10, 12], ['extOverhead', 3, 10, 12], ['bayesian', 2, 10, 12], ['extUni', 2, 12, 15], ['elevPoulie', 3, 12, 15]]);
+
+    expect(names('sun')).toEqual(['squat', 'bench', 'smithIncline', 'dips', 'extV', 'pecFly', 'barreFront']);
+    expect(kilos('sun', 'squat')).toEqual([[1, 3, 95], [1, 3, 107.5], [1, 3, 110], [2, 7, 92.5]]);
+    expect(kilos('sun', 'bench')).toEqual([[1, 7, 42.5], [1, 7, 50], [3, 7, 60]]);
+    expect(sets('sun')).toEqual([['smithIncline', 2, 8, 10], ['dips', 3, 8, 12], ['extV', 2, 10, 12], ['pecFly', 2, 12, 15], ['barreFront', 2, 10, 12]]);
+  });
+
+  it('pairs the supersets of the validated week', () => {
+    const groups = (k: SessionKey) => buildSession(1, 1, k).exercises.filter((e) => e.group).map((e) => `${e.group}:${e.exId}`);
+    expect(groups('wed')).toEqual(['a:elevMachine', 'a:avantEpaule', 'b:marteau', 'b:elevHalteres']);
+    expect(groups('sat')).toEqual(['a:facePull', 'a:avantEpaule', 'b:curlPoulie', 'b:extOverhead', 'c:bayesian', 'c:extUni']);
+  });
+
+  it('keeps the rhythm of the three lifts through the block', () => {
+    for (let w = 1; w <= 5; w++) {
+      const lifts = (k: SessionKey) => buildSession(1, w, k).exercises.map((e) => EXERCISES[e.exId].lift ?? EXERCISES[e.exId].tm).filter(Boolean);
+      expect(lifts('tue')).toEqual(['squat', 'bench', 'deadlift']);
+      expect(lifts('wed')).toEqual(['bench']);
+      expect(lifts('fri')).toEqual(['squat', 'bench', 'deadlift']);
+      expect(lifts('sat')).toEqual([]);
+      expect(lifts('sun')).toEqual(['squat', 'bench']);
+    }
+  });
+
+  it('keeps Sunday light enough for the heavy squat of Tuesday', () => {
+    for (let w = 1; w <= 5; w++) {
+      const squat = buildSession(1, w, 'sun').exercises[0];
+      expect(Math.max(...squat.sets.map((x) => x.rpe ?? 0))).toBeLessThanOrEqual(7);
+    }
   });
 
   it('halves the volume in week 5', () => {
@@ -168,8 +223,9 @@ describe('program', () => {
 
   it('places a true max on blocks 3, 5 and 7 only', () => {
     expect([1, 2, 3, 4, 5, 6, 7].map(isTestBlock)).toEqual([false, false, true, false, true, false, true]);
-    expect(buildSession(1, 5, 'tue').exercises[0].sets.some((x) => x.type === 'test')).toBe(false);
-    expect(buildSession(3, 5, 'tue').exercises[0].sets.some((x) => x.type === 'test')).toBe(true);
+    expect(buildSession(1, 5, 'fri').exercises[0].sets.some((x) => x.type === 'test')).toBe(false);
+    expect(buildSession(3, 5, 'fri').exercises.every((e) => e.sets.some((x) => x.type === 'test'))).toBe(true);
+    expect(buildSession(3, 5, 'tue').exercises[0].sets.some((x) => x.type === 'test')).toBe(false);
   });
 
   it('covers every muscle above its minimum in block 1', () => {
@@ -236,8 +292,8 @@ describe('session flow', () => {
     let s = fresh();
     s = logSet(s, currentStep(s)!, { load: 0, reps: 8 }, 2000);
     s = skipExercise(s, 0, 2001);
-    expect(s.plan[currentStep(s)!.ex].exId).toBe('dm');
-    expect(progress(s).total).toBe(s.plan.flatMap((e) => e.sets).length - 2);
+    expect(s.plan[currentStep(s)!.ex].exId).toBe('tractions');
+    expect(progress(s).total).toBe(s.plan.flatMap((e) => e.sets).length - 3);
   });
 
   it('adds a set with a unique id', () => {
@@ -245,7 +301,7 @@ describe('session flow', () => {
     s = addSet(s, 0, 2001);
     const ids = s.plan[0].sets.map((x) => x.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids).toHaveLength(5);
+    expect(ids).toHaveLength(6);
   });
 
   it('replaces an exercise entirely when nothing is logged', () => {
@@ -257,10 +313,10 @@ describe('session flow', () => {
     let s = fresh();
     s = logSet(s, currentStep(s)!, { load: 0, reps: 8 }, 2000);
     s = replaceExercise(s, 0, 'tirageLarge', 2001);
-    expect(s.plan[0].exId).toBe('tractions');
+    expect(s.plan[0].exId).toBe('closeGrip');
     expect(s.plan[0].sets).toHaveLength(1);
     expect(s.plan[1].exId).toBe('tirageLarge');
-    expect(s.plan[1].sets).toHaveLength(2);
+    expect(s.plan[1].sets).toHaveLength(3);
     expect(currentStep(s)?.ex).toBe(1);
   });
 

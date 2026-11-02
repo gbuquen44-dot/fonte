@@ -94,38 +94,47 @@ function testRows(block: number): Row[] {
   ];
 }
 
+/** Deadlift of the volume day: always clean, the heavy singles come on Friday. */
+function deadliftVolume(week: number): Row[] {
+  if (week === 5) return [[5, 60, 2, 'ramp'], [5, 70, 4, 'ramp'], [3, 75, 6, 'work']];
+  if (week === 4) return [[5, 60, 2, 'ramp'], [5, 70, 5, 'ramp'], ...rep(2, [3, 80, 7, 'work'] as Row)];
+  const [a, b, c] = week === 1 ? [60, 69, 76] : week === 2 ? [62, 70, 78] : [64, 72, 80];
+  return [[5, a, 2, 'ramp'], [5, b, 5, 'ramp'], ...rep(2, [5, c, 7, 'work'] as Row)];
+}
+
 function tuesday(block: number, week: number): PlannedSession {
-  const title = 'Squat + Bench';
-  const subtitle = 'Force, pecs, triceps';
+  const deadlift = barbell('deadlift', deadliftVolume(week), 'Reste propre : le deadlift lourd revient vendredi.');
+  if (week === 5) {
+    const rows: Row[] = [[1, 75, 2, 'ramp'], [1, 82, 4, 'ramp'], [1, 87, 6, 'top'], ...rep(2, [5, 70, 6, 'work'] as Row)];
+    return {
+      key: 'tue',
+      block,
+      week,
+      title: 'Squat + Bench 2CT légers',
+      subtitle: 'Semaine 5, affûtage',
+      exercises: [barbell('squat', rows), barbell('bench2ct', rows), deadlift, acc('abdos', 2, 10, 15, { rpe: 7 })],
+    };
+  }
   const ex: PlannedExercise[] = [];
-  if (week === 1 || week === 2 || week === 4) {
+  if (week === 3) {
+    ex.push(barbell('squat', wave(block, false)));
+    ex.push(barbell('bench2ct', wave(block, true)));
+  } else {
     const top = week === 1 ? 7 : week === 2 ? 7.5 : 8;
     const workPct = week === 2 ? 80 : 78;
     const workRpe = week === 2 ? 7.5 : 7;
     ex.push(barbell('squat', [...singles(block, [78, 85, 91], top), ...rep(2, [5, workPct, workRpe, 'work'])]));
     ex.push(barbell('bench2ct', [...singles(block, [78, 85, 91], top), ...rep(3, [5, week === 1 ? 78 : 80, week === 1 ? 7 : top, 'work'])]));
-  } else if (week === 3) {
-    ex.push(barbell('squat', wave(block, false)));
-    ex.push(barbell('bench2ct', wave(block, true)));
-  } else {
-    const isTest = isTestBlock(block);
-    return {
-      key: 'tue',
-      block,
-      week,
-      title: isTest ? 'Test squat' : 'Single squat',
-      subtitle: 'Semaine 5, affûtage',
-      exercises: [
-        barbell('squat', testRows(block), isTest ? 'Vrai max si tout va bien.' : 'Tu t\'arrêtes à ce single, il te reste 2 reps.'),
-        barbell('bench', rep(3, [3, 76, 6, 'work']), 'Dernier contact avant le bench de vendredi.'),
-      ],
-    };
   }
-  ex.push(acc('smithIncline', 2, 8, 10, { rpe: 8 }));
-  ex.push(acc('dips', 2, 8, 12, { rpe: 8 }));
-  ex.push(acc('extV', 2, 10, 12, { rpe: 8.5 }));
-  if (block > 1) ex.push(acc('pecFly', 2, 12, 15, { rpe: 8.5 }));
-  return { key: 'tue', block, week, title, subtitle, exercises: ex };
+  ex.push(
+    deadlift,
+    acc('pendulum', 2, 8, 10, { rpe: 8 }),
+    acc('legExt', 2, 10, 12, { rpe: 8 }),
+    acc('legCurl', 3, 10, 12, { rpe: 8 }),
+    acc('abduction', 2, 12, 15, { rpe: 8 }),
+    acc('abdos', 2, 10, 15, { rpe: 8 }),
+  );
+  return { key: 'tue', block, week, title: 'Squat + Bench 2CT + Deadlift', subtitle: 'Force, jambes', exercises: ex };
 }
 
 function wednesday(block: number, week: number): PlannedSession {
@@ -137,6 +146,7 @@ function wednesday(block: number, week: number): PlannedSession {
       title: 'Haut du corps léger',
       subtitle: 'Semaine 5, moitié du volume',
       exercises: [
+        barbell('closeGrip', [[3, 68, 2, 'ramp'], ...rep(2, [3, 74, 5, 'work'] as Row)]),
         acc('tractions', 2, 6, 8, { rpe: 7 }),
         acc('dm', 2, 6, 8, { rpe: 7 }),
         acc('elevMachine', 2, 12, 15, { rpe: 8 }),
@@ -145,54 +155,66 @@ function wednesday(block: number, week: number): PlannedSession {
       ],
     };
   }
-  const ex = [
-    acc('tractions', 3, 6, 10, { rpe: 8 }),
-    acc('dm', 3, 6, 8, { rpe: 8 }),
-    acc('oiseau', 2, 12, 15, { rpe: 8.5 }),
-    acc('elevMachine', 3, 12, 15, { rpe: 8.5 }),
-    acc('marteau', 2, 10, 12, { rpe: 8.5, group: 'a' }),
-    acc('elevHalteres', 2, 12, 15, { rpe: 8.5, group: 'a' }),
-    acc('bayesian', 2, 10, 12, { rpe: 8.5 }),
-  ];
-  if (block > 1) {
-    ex.splice(2, 0, acc('tirageHNeutre', 2, 8, 12, { rpe: 8 }));
-    ex.push(acc('pupitre', 2, 10, 12, { rpe: 8.5 }));
-  }
-  return { key: 'wed', block, week, title: 'Dos + Épaules + Biceps', subtitle: 'Muscle', exercises: ex };
+  const cgWork = week === 2 || week === 3 ? 3 : 2;
+  return {
+    key: 'wed',
+    block,
+    week,
+    title: 'Close grip + Dos + Épaules + Biceps',
+    subtitle: 'Triceps, dos, épaules, bras',
+    exercises: [
+      barbell('closeGrip', [[3, 68, 2, 'ramp'], [3, 74, 5, 'ramp'], ...rep(cgWork, [3, 80, 7, 'work'] as Row)]),
+      acc('tractions', 3, 6, 10, { rpe: 8 }),
+      acc('dm', 3, 6, 8, { rpe: 8 }),
+      acc('tirageNeutre', 2, 8, 12, { rpe: 8 }),
+      acc('tirageHNeutre', 2, 8, 12, { rpe: 8 }),
+      acc('oiseau', 2, 12, 15, { rpe: 8.5 }),
+      acc('elevMachine', 3, 12, 15, { rpe: 8.5, group: 'a' }),
+      acc('avantEpaule', 2, 10, 12, { rpe: 8.5, group: 'a' }),
+      acc('marteau', 3, 10, 12, { rpe: 8.5, group: 'b' }),
+      acc('elevHalteres', 3, 12, 15, { rpe: 8.5, group: 'b' }),
+      acc('bayesian', 2, 10, 12, { rpe: 8.5 }),
+      acc('pupitre', 2, 10, 12, { rpe: 8.5 }),
+    ],
+  };
+}
+
+/** His SBD session: a heavy single, then back-offs at the same load. */
+function heavySingles(block: number, week: number): Row[] {
+  const ladder: [number, number, number] = week === 1 ? [78, 84, 90] : week === 4 ? [80, 86, 92] : [80, 86, 91];
+  const top = week === 1 ? 7 : week === 4 ? 8 : 7.5;
+  return [...singles(block, ladder, top), ...rep(week <= 2 ? 2 : 1, [1, ladder[2], cap(top, block), 'work'])];
 }
 
 function friday(block: number, week: number): PlannedSession {
   if (week === 5) {
     const isTest = isTestBlock(block);
+    const end = isTest ? 'Vrai max si tout va bien.' : 'Tu t\'arrêtes à ce single, il te reste 2 reps.';
     return {
       key: 'fri',
       block,
       week,
-      title: isTest ? 'Test bench' : 'Single bench',
+      title: isTest ? 'Records squat, bench, deadlift' : 'Singles squat, bench, deadlift',
       subtitle: 'Semaine 5, affûtage',
-      exercises: [
-        barbell('bench', testRows(block), isTest ? 'Vrai max si tout va bien. Vraie pause sur la poitrine.' : 'Vraie pause sur la poitrine, il te reste 2 reps.'),
-        acc('extV', 2, 10, 12, { rpe: 7 }),
-      ],
+      exercises: [barbell('squat', testRows(block), end), barbell('bench', testRows(block), `Vraie pause sur la poitrine. ${end}`), barbell('deadlift', testRows(block), end)],
     };
   }
-  const ex: PlannedExercise[] = [];
-  if (week === 3) {
-    ex.push(barbell('deadlift', [[5, 66, 3, 'ramp'], [5, 74, 5, 'ramp'], [5, 80, 7, 'work'], [5, 84, cap(8, block), 'top']]));
-  } else {
-    const top = week === 1 ? 7 : week === 2 ? 7.5 : 8;
-    const ladder: [number, number, number] = week === 1 ? [78, 85, 90] : [80, 85, 91];
-    const tail: Row[] = week === 4 ? rep(2, [3, 80, 7, 'work']) : rep(2, [5, week === 1 ? 76 : 78, 7, 'work']);
-    ex.push(barbell('deadlift', [...singles(block, ladder, top), ...tail]));
-  }
-  const cgSets = week === 2 || week === 3 ? 4 : 3;
-  ex.push(barbell('closeGrip', [[3, 68, 2, 'ramp'], [3, 74, 5, 'ramp'], ...rep(cgSets - 1, [3, 80, 7, 'work'] as Row)]));
-  ex.push(acc('rdl', 2, 8, 8, { rpe: 7 }));
-  ex.push(acc('legCurl', 2, 10, 12, { rpe: 8 }));
-  ex.push(acc('extOverhead', 2, 10, 12, { rpe: 8.5 }));
-  if (block > 1) ex.push(acc('extUni', 2, 12, 15, { rpe: 8.5 }));
-  ex.push(acc('mollets', 2, 12, 15, { rpe: 8.5 }));
-  return { key: 'fri', block, week, title: 'Deadlift + Triceps', subtitle: 'Force, ischios, triceps', exercises: ex };
+  return {
+    key: 'fri',
+    block,
+    week,
+    title: 'Squat + Bench + Deadlift',
+    subtitle: 'Lourd, ischios, mollets',
+    exercises: [
+      barbell('squat', heavySingles(block, week)),
+      barbell('bench', heavySingles(block, week)),
+      acc('benchHalteres2ct', 2, 8, 10, { rpe: 8, note: 'Facultatif : passe-le si tu fatigues.' }),
+      barbell('deadlift', heavySingles(block, week)),
+      acc('smithIncline', 2, 8, 10, { rpe: 8 }),
+      acc('rdl', 3, 8, 8, { rpe: 7 }),
+      acc('mollets', 4, 12, 15, { rpe: 8.5 }),
+    ],
+  };
 }
 
 function saturday(block: number, week: number): PlannedSession {
@@ -211,68 +233,73 @@ function saturday(block: number, week: number): PlannedSession {
       ],
     };
   }
-  const ex = [
-    acc('tractions', 2, 6, 10, { rpe: 8 }),
-    acc('tirageLarge', 2, 8, 12, { rpe: 8 }),
-    acc('tirageHUni', 2, 8, 12, { rpe: 8 }),
-    acc('facePull', 2, 12, 15, { rpe: 8.5 }),
-    acc('curlPoulie', 2, 10, 12, { rpe: 8.5, group: 'b' }),
-    acc('elevPoulie', 2, 12, 15, { rpe: 8.5, group: 'b' }),
-    acc('bayesian', 2, 10, 12, { rpe: 8.5 }),
-  ];
-  if (block > 1) ex.splice(3, 0, acc('tirageHaut', 2, 10, 12, { rpe: 8 }));
-  return { key: 'sat', block, week, title: 'Dos + Épaules + Bras', subtitle: 'Muscle', exercises: ex };
+  return {
+    key: 'sat',
+    block,
+    week,
+    title: 'Dos + Épaules + Bras',
+    subtitle: 'Muscle',
+    exercises: [
+      acc('tractions', 2, 6, 10, { rpe: 8 }),
+      acc('tirageLarge', 2, 8, 12, { rpe: 8 }),
+      acc('tirageHUni', 2, 8, 12, { rpe: 8 }),
+      acc('tirageHaut', 2, 10, 12, { rpe: 8 }),
+      acc('facePull', 2, 12, 15, { rpe: 8.5, group: 'a' }),
+      acc('avantEpaule', 2, 10, 12, { rpe: 8.5, group: 'a' }),
+      acc('curlPoulie', 3, 10, 12, { rpe: 8.5, group: 'b' }),
+      acc('extOverhead', 3, 10, 12, { rpe: 8.5, group: 'b' }),
+      acc('bayesian', 2, 10, 12, { rpe: 8.5, group: 'c' }),
+      acc('extUni', 2, 12, 15, { rpe: 8.5, group: 'c' }),
+      acc('elevPoulie', 3, 12, 15, { rpe: 8.5, note: 'En finition.' }),
+    ],
+  };
 }
 
 function sunday(block: number, week: number): PlannedSession {
   if (week === 5) {
-    const isTest = isTestBlock(block);
     return {
       key: 'sun',
       block,
       week,
-      title: isTest ? 'Test deadlift' : 'Single deadlift',
+      title: 'Squat + Bench légers',
       subtitle: 'Fin du bloc',
-      exercises: [barbell('deadlift', testRows(block), isTest ? 'Vrai max si tout va bien.' : 'Il te reste 2 reps.'), acc('abdos', 2, 10, 15, { rpe: 7 })],
-    };
-  }
-  if (week === 4) {
-    return {
-      key: 'sun',
-      block,
-      week,
-      title: 'Technique légère',
-      subtitle: 'Dernier contact avant la semaine 5',
       exercises: [
-        barbell('squat', rep(3, [2, 75, 5, 'work'])),
+        barbell('squat', [[3, 72, 3, 'ramp'], [3, 80, 6, 'top']]),
         barbell('bench', [[7, 50, 3, 'ramp'], [7, 60, 4, 'ramp'], ...rep(2, [7, 70, 6, 'work'] as Row)]),
-        barbell('deadlift', rep(3, [1, 72, 4, 'work'])),
-        acc('mollets', 2, 12, 15, { rpe: 8 }),
-        acc('abdos', 2, 10, 15, { rpe: 8 }),
+        acc('extV', 2, 10, 12, { rpe: 7 }),
+        acc('pecFly', 2, 12, 15, { rpe: 7 }),
       ],
     };
   }
   const squatRows: Row[] =
-    week === 1
+    week === 1 || week === 4
       ? [[3, 71, 2, 'ramp'], [3, 79, 5, 'ramp'], [3, 82, 7, 'top'], ...rep(2, [7, 68, 6.5, 'work'] as Row)]
       : [[3, 74, 3, 'ramp'], [3, 80, 5, 'ramp'], [3, 84, 7, 'top'], ...rep(2, [7, 70, 7, 'work'] as Row)];
+  const benchRamps: Row[] = [[7, 50, 3, 'ramp'], [7, 60, 4, 'ramp']];
   const benchRows: Row[] =
     week === 1
-      ? [[7, 50, 3, 'ramp'], [7, 60, 4, 'ramp'], ...rep(3, [7, 72, 7, 'work'] as Row)]
+      ? [...benchRamps, ...rep(3, [7, 72, 7, 'work'] as Row)]
       : week === 2
-        ? [[7, 50, 3, 'ramp'], [7, 60, 4, 'ramp'], ...rep(3, [7, 74, 7, 'work'] as Row)]
-        : [[7, 50, 3, 'ramp'], [7, 60, 4, 'ramp'], ...rep(2, [7, 76, 7.5, 'work'] as Row), [7, 70, 7, 'drop']];
-  const ex = [
-    barbell('squat', squatRows, 'Garde 3 reps en réserve : le squat lourd revient mardi.'),
-    barbell('bench', benchRows),
-    acc('pendulum', 2, 8, 10, { rpe: 7.5 }),
-    acc('legExt', 2, 10, 12, { rpe: 8 }),
-    acc('legCurl', 2, 10, 12, { rpe: 8 }),
-    acc('mollets', 2, 12, 15, { rpe: 8.5 }),
-    acc('abdos', 2, 10, 15, { rpe: 8 }),
-  ];
-  if (block > 1) ex.splice(5, 0, acc('abduction', 2, 12, 15, { rpe: 8 }));
-  return { key: 'sun', block, week, title: 'Squat + Bench + Jambes', subtitle: 'Volume, jamais à l\'échec', exercises: ex };
+        ? [...benchRamps, ...rep(3, [7, 74, 7, 'work'] as Row)]
+        : week === 3
+          ? [...benchRamps, ...rep(2, [7, 76, 7.5, 'work'] as Row), [7, 70, 7, 'drop']]
+          : [...benchRamps, ...rep(2, [7, 72, 7, 'work'] as Row)];
+  return {
+    key: 'sun',
+    block,
+    week,
+    title: 'Squat + Bench + Pecs + Triceps',
+    subtitle: 'Volume, jamais à l\'échec',
+    exercises: [
+      barbell('squat', squatRows, 'Garde 3 reps en réserve : le squat lourd revient mardi.'),
+      barbell('bench', benchRows),
+      acc('smithIncline', 2, 8, 10, { rpe: 8 }),
+      acc('dips', 3, 8, 12, { rpe: 8, note: 'Dont 2 séries pour le bas des pecs.' }),
+      acc('extV', 2, 10, 12, { rpe: 8.5 }),
+      acc('pecFly', 2, 12, 15, { rpe: 8.5 }),
+      acc('barreFront', 2, 10, 12, { rpe: 8.5 }),
+    ],
+  };
 }
 
 export function buildSession(block: number, week: number, key: SessionKey): PlannedSession {
