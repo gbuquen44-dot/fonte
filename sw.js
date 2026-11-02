@@ -1,5 +1,5 @@
-const CACHE = 'fonte-1c83f7bc8641';
-const FILES = ["./","./assets/index-Dpl73HBA.js","./assets/index-bGRy3Vne.css","./icon-180.png","./icon-192.png","./icon-512.png","./index.html","./manifest.webmanifest"];
+const CACHE = 'fonte-d86c8e975402';
+const FILES = ["./","./assets/index-B3tk0b1X.css","./assets/index-CklfQqMe.js","./icon-180.png","./icon-192.png","./icon-512.png","./index.html","./manifest.webmanifest"];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
