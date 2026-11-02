@@ -127,6 +127,18 @@ export function activeSession(d: AppData = state.data): SessionLog | undefined {
   return Object.values(d.sessions).find((s) => s.status === 'active');
 }
 
+const HOUR = 3_600_000;
+
+/** A session untouched for hours was forgotten, not paused. */
+export const isStale = (s: SessionLog, now = Date.now()) => now - s.updatedAt > 6 * HOUR;
+
+/** An empty session left open would block the next one. */
+function dropEmptySessions(now = Date.now()) {
+  for (const s of Object.values(state.data.sessions)) {
+    if (s.status === 'active' && !s.sets.length && now - s.updatedAt > HOUR) deleteSession(s.id);
+  }
+}
+
 export function beginSession(p: PlannedSession, date: ISODate): SessionLog {
   const running = activeSession();
   if (running) return running;
@@ -308,6 +320,7 @@ export async function pull(force = false) {
     state = { ...state, data: { profile, days, sessions } };
     persist();
     emit();
+    dropEmptySessions();
     setSync(dirty.size ? 'saving' : 'synced', true);
     await readInbox(c, files);
     scheduleFlush(300);
@@ -332,6 +345,7 @@ function bind() {
 }
 
 export async function connectCloud() {
+  dropEmptySessions();
   if (!conn()) {
     setSync('local', true);
     return;

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { deleteSession, doneSessions, flush, saveSession, updateProfile, useApp } from '../state/store';
+import { deleteSession, doneSessions, flush, isStale, saveSession, updateProfile, useApp } from '../state/store';
 import type { EquipKind, LiftKey, PlannedSet, PostCheck, PreCheck, SessionLog } from '../core/types';
 import {
   addSet,
@@ -94,7 +94,7 @@ function Running({ s, onClose }: { s: SessionLog; onClose(): void }) {
   const [editing, setEditing] = useState<Step | null>(null);
   const [menu, setMenu] = useState(false);
   const [overview, setOverview] = useState(false);
-  const [ending, setEnding] = useState(false);
+  const [ending, setEnding] = useState(() => isStale(s));
   const [note, setNote] = useState<Note>({});
   const [flash, setFlash] = useState(0);
   const resting = !!s.restUntil;
@@ -108,7 +108,7 @@ function Running({ s, onClose }: { s: SessionLog; onClose(): void }) {
   useEffect(() => {
     if (s.restUntil && restLeft <= 0 && ended.current !== s.restUntil) {
       ended.current = s.restUntil;
-      beep();
+      if (restLeft > -3000) beep();
       saveSession({ ...s, restUntil: undefined, restTotal: undefined, updatedAt: Date.now() });
     }
   }, [restLeft, s]);
@@ -274,7 +274,7 @@ function Guide({ s, st, history, tm }: { s: SessionLog; st: Step; history: Sessi
 }
 
 function RestRing({ left, total, text, onShift, onSkip }: { left: number; total: number; text?: string; onShift(d: number): void; onSkip(): void }) {
-  const size = window.innerHeight < 720 ? 128 : 164;
+  const size = window.innerHeight < 720 ? 104 : 164;
   const r = (size - 12) / 2;
   const c = 2 * Math.PI * r;
   const ratio = Math.min(1, Math.max(0, left / total));
@@ -338,7 +338,7 @@ function SetCard({
   const [pad, setPad] = useState<'load' | 'reps' | null>(null);
   const kind = def?.kind ?? 'machine';
   const step = def?.step ?? 2.5;
-  const offGrid = Math.abs(load / step - Math.round(load / step)) > 1e-6 ? load : null;
+  const offGrid = Math.abs(load / step - Math.round(load / step)) > 1e-6 || load > MAX_LOAD[kind] ? load : null;
   const grid = useMemo(() => loadValues(step, MAX_LOAD[kind], offGrid ?? 0), [step, kind, offGrid]);
   const row = useMemo(rowHeight, []);
   const lift = !!def?.lift;
@@ -457,7 +457,7 @@ function Overview({ s, current, onEdit }: { s: SessionLog; current?: number; onE
                 <li key={p.id}>
                   <button type="button" disabled={!log} onClick={() => onEdit({ ex: i, set: j })}>
                     <span>{SET_LABEL[p.type] || `Série ${j + 1}`}</span>
-                    <span className="num">{log ? `${kg(log.load)} kg × ${log.reps}` : skipped ? 'Passée' : <Planned p={p} />}</span>
+                    <span className="num">{log ? (log.load ? `${kg(log.load)} kg × ${log.reps}` : `${log.reps} ${plural(log.reps, 'rep')}`) : skipped ? 'Passée' : <Planned p={p} />}</span>
                     {log ? <IconCheck size={16} /> : null}
                   </button>
                 </li>
@@ -470,7 +470,7 @@ function Overview({ s, current, onEdit }: { s: SessionLog; current?: number; onE
   );
 }
 
-const Planned = ({ p }: { p: PlannedSet }) => <>{repsText(p.reps, p.repsMax)} reps</>;
+const Planned = ({ p }: { p: PlannedSet }) => <>{repsText(p.reps, p.repsMax)} {plural(p.repsMax ?? p.reps, 'rep')}</>;
 
 function SessionMenu({ s, step, onClose, onEnd, onAbandon }: { s: SessionLog; step: Step | null; onClose(): void; onEnd(): void; onAbandon(): void }) {
   const [view, setView] = useState<'main' | 'swap' | 'abandon'>('main');
@@ -563,7 +563,9 @@ function Finish({ s, history, onBack, onClose }: { s: SessionLog; history: Sessi
   const finish = () => {
     const post: PostCheck = { srpe: hard as number, vsPlan: vsPlan as number, painZone: pain === 'yes' ? zone[0] : undefined, painLevel: pain === 'yes' ? level : undefined, unusual: [] };
     const pre: PreCheck = meal === 'usual' && usual ? { mealDelay: usual.mealDelay, carbs: usual.carbs, caffeineMg, food: usual.label, usual: true } : { mealDelay, carbs: mealDelay === 'fasted' ? 'low' : carbs, caffeineMg };
-    saveSession({ ...finishSession(s, post, Date.now(), history, profile.best), pre: s.pre ?? pre });
+    const now = Date.now();
+    // A session finished the next day ended at its last set, not now.
+    saveSession({ ...finishSession(s, post, isStale(s, now) ? s.updatedAt : now, history, profile.best), pre: s.pre ?? pre, updatedAt: now });
     if (caffeineMg !== profile.usualCaffeineMg) updateProfile({ usualCaffeineMg: caffeineMg });
     void flush();
     onClose();
@@ -581,7 +583,7 @@ function Finish({ s, history, onBack, onClose }: { s: SessionLog; history: Sessi
       <dl className="finish-stats">
         <div>
           <dd className="num">{durationMin(s)}</dd>
-          <dt>minutes</dt>
+          <dt>{plural(durationMin(s), 'minute')}</dt>
         </div>
         <div>
           <dd className="num">{s.sets.length}</dd>
@@ -646,7 +648,7 @@ function Finish({ s, history, onBack, onClose }: { s: SessionLog; history: Sessi
           </button>
         ) : null}
         <button type="button" className="btn primary big" disabled={!ok} onClick={finish}>
-          Enregistrer
+          {ok ? 'Enregistrer' : 'Réponds aux questions'}
         </button>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { updateDay, useApp } from '../state/store';
 import { weighIns } from '../core/energy';
 import type { ISODate } from '../core/dates';
@@ -24,10 +24,11 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
   const days = useApp((r) => r.data.days);
   const today = days[date];
   const lastWeight = useMemo(() => weighIns(days).filter((d) => d.date <= date).pop()?.weight ?? 70, [days, date]);
+  const lastSleep = useMemo(() => Object.values(days).filter((d) => d.date < date && typeof d.sleepH === 'number').sort((a, b) => a.date.localeCompare(b.date)).pop()?.sleepH ?? 7, [days, date]);
   const row = useMemo(rowHeight, []);
   const [step, setStep] = useState(0);
   const [weight, setWeight] = useState(today?.weight ?? lastWeight);
-  const [sleepH, setSleep] = useState(today?.sleepH ?? 7.5);
+  const [sleepH, setSleep] = useState(today?.sleepH ?? lastSleep);
   const [sleepQ, setQ] = useState(today?.sleepQ);
   const [recovery, setRecovery] = useState(today?.recovery);
   const [dayFeel, setFeel] = useState(today?.dayFeel);
@@ -38,8 +39,22 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
     set(v);
     setTimeout(next, 170);
   };
+  const answers = { weight, sleepH, sleepQ, dayFeel, stress, recovery, tags };
+  const latest = useRef({ answers, step });
+  latest.current = { answers, step };
+  const finished = useRef(false);
+
+  /** Closing halfway keeps the answers, and the morning stays to finish. */
+  useEffect(
+    () => () => {
+      if (!finished.current && latest.current.step > 0) updateDay(date, latest.current.answers);
+    },
+    [date],
+  );
+
   const finish = () => {
-    updateDay(date, { weight, sleepH, sleepQ, dayFeel, stress, recovery, tags, checkinAt: Date.now() });
+    finished.current = true;
+    updateDay(date, { ...answers, checkinAt: Date.now() });
     onClose();
   };
   const STEPS = 5;

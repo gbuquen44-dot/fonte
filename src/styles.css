@@ -2567,6 +2567,106 @@ details textarea {
   font-size: 17px;
 }
 
+.install h2 {
+  margin-bottom: 12px;
+}
+
+.keypad-value[data-fresh] span {
+  padding: 0 6px;
+  border-radius: 10px;
+  background: rgba(98, 240, 196, 0.22);
+}
+
+.tick.ref {
+  fill: var(--ink-2);
+  stroke: rgba(11, 18, 48, 0.85);
+  stroke-width: 3px;
+  paint-order: stroke;
+}
+
+.chart-read > span:first-child {
+  flex: none;
+}
+
+/* Phone on its side: iOS cannot lock it, so the session scrolls. */
+
+@media (max-height: 500px) {
+  .session {
+    overflow-y: auto;
+  }
+
+  .s-hero {
+    flex: none;
+    min-height: 130px;
+  }
+}
+
+/* Short screens: the set card stays whole, the rest shrinks around it. */
+
+@media (max-height: 720px) {
+  .session[data-resting] .s-map,
+  .s-rest p,
+  .s-hero:has(.s-form) .s-rest {
+    display: none;
+  }
+
+  .s-hero {
+    gap: 6px;
+    padding-bottom: 6px;
+  }
+
+  .s-rest {
+    gap: 0;
+  }
+
+  .s-ring b {
+    font-size: 30px;
+  }
+
+  .s-ring small {
+    margin-top: 0;
+    font-size: 12.5px;
+  }
+
+  .s-shift {
+    width: 46px;
+    height: 46px;
+  }
+
+  .s-skip {
+    padding: 2px 14px;
+    font-size: 14px;
+  }
+
+  .setcard {
+    padding: 12px 12px 10px;
+  }
+
+  .setcard-head h2 {
+    font-size: 22px;
+  }
+
+  .setdots {
+    padding-top: 6px;
+  }
+
+  .setcard-goal {
+    padding: 6px 4px;
+  }
+
+  .wheel-items button {
+    font-size: 24px;
+  }
+
+  .effort {
+    padding-top: 6px;
+  }
+
+  .setcard .btn {
+    margin-top: 8px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

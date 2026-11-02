@@ -68,12 +68,12 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
           <Bar label="Lipides" value={day?.fat === undefined ? undefined : day.fat + UNLOGGED_FAT} target={macros.fat} color="var(--amber)" />
         </div>
       </section>
-      <button type="button" className="btn ghost" onClick={onEntry}>
-        {day?.kcal !== undefined ? 'Corriger ma journée' : 'Noter ma journée à la main'}
-      </button>
       <p className="source">
         {day?.healthAt ? `Reçu de Yazio à ${new Date(day.healthAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.` : healthAt ? 'Pas encore de repas reçus de Yazio aujourd\'hui.' : 'Tes repas arrivent de Yazio tout seuls.'}
       </p>
+      <button type="button" className="link" onClick={onEntry}>
+        {day?.kcal !== undefined ? 'Corriger ma journée' : 'Noter ma journée à la main'}
+      </button>
 
       <section className="card">
         <h2>Ton plan de calories</h2>
@@ -173,6 +173,7 @@ function Entry({ today, onClose }: { today: ISODate; onClose(): void }) {
     <div className="entry">
       <SheetHead title="Ma journée" onClose={onClose} />
       <Segmented<'today' | 'yesterday'> label="Jour" value={which} onPick={setWhich} options={[{ value: 'today', label: 'Aujourd\'hui' }, { value: 'yesterday', label: 'Hier' }]} />
+      <p className="muted">Ce que tu notes ici remplace les chiffres de Yazio pour ce jour.</p>
       <ul className="fields">
         {FIELDS.map((f) => {
           const v = draft[f.key];

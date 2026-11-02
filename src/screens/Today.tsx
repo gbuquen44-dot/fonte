@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { activeSession, beginSession, doneSessions, useApp } from '../state/store';
-import { addDays, DAY_LABEL, dayKey, diffDays, longDate, mondayOf, type ISODate } from '../core/dates';
+import { activeSession, beginSession, doneSessions, isStale, useApp } from '../state/store';
+import { addDays, DAY_LABEL, dayKey, diffDays, longDate, mondayOf, shortDate, type ISODate } from '../core/dates';
 import { estimateMinutes, locate, plannedFor } from '../core/program';
 import { macrosFor, targetKcal, weighIns } from '../core/energy';
 import { tipOfDay } from '../core/rules';
@@ -8,7 +8,7 @@ import { plural } from '../core/labels';
 import type { PlannedSession, Profile, SessionLog } from '../core/types';
 import { EXERCISES } from '../data/exercises';
 import { fr1, hours, int, Ring } from '../ui/controls';
-import { IconCheck, IconChevron, IconGear, IconMoon } from '../ui/icons';
+import { IconCheck, IconChevron, IconGear, IconLink, IconMoon } from '../ui/icons';
 import { useToday } from '../ui/hooks';
 import { prepareAudio } from '../ui/sound';
 
@@ -25,8 +25,9 @@ function nextPlanned(today: ISODate, p: Profile, sessions: SessionLog[]): { date
 
 const STEPS_GOAL = 8000;
 
-export function Today({ onSession, onSettings, onCheckin, onEntry }: { onSession(): void; onSettings(): void; onCheckin(): void; onEntry(): void }) {
+export function Today({ onSession, onSettings, onCheckin, onFood }: { onSession(): void; onSettings(): void; onCheckin(): void; onFood(): void }) {
   const data = useApp((r) => r.data);
+  const sync = useApp((r) => r.sync);
   const today = useToday();
   const p = data.profile!;
   const sessions = useMemo(() => doneSessions(data), [data.sessions]);
@@ -62,6 +63,19 @@ export function Today({ onSession, onSettings, onCheckin, onEntry }: { onSession
         </button>
       </header>
 
+      {sync === 'denied' ? (
+        <button type="button" className="card nudge" onClick={onSettings}>
+          <span className="nudge-icon">
+            <IconLink size={22} />
+          </span>
+          <span>
+            <strong>Ta sauvegarde est coupée</strong>
+            <small>Ton jeton GitHub ne marche plus.</small>
+          </span>
+          <IconChevron size={20} />
+        </button>
+      ) : null}
+
       {!day?.checkinAt ? (
         <button type="button" className="card nudge" onClick={onCheckin}>
           <span className="nudge-icon">
@@ -69,7 +83,7 @@ export function Today({ onSession, onSettings, onCheckin, onEntry }: { onSession
           </span>
           <span>
             <strong>Ton point du matin</strong>
-            <small>Poids, sommeil, forme. 30 secondes.</small>
+            <small>Poids, sommeil, forme.</small>
           </span>
           <IconChevron size={20} />
         </button>
@@ -77,13 +91,13 @@ export function Today({ onSession, onSettings, onCheckin, onEntry }: { onSession
 
       {active ? (
         <section className="card hero">
-          <p className="hero-tag">Séance en cours</p>
+          <p className="hero-tag">{isStale(active) ? `Pas terminée · ${shortDate(active.date)}` : 'Séance en cours'}</p>
           <h2>{active.title}</h2>
           <p className="hero-sub num">
             {active.sets.length} {plural(active.sets.length, 'série notée', 'séries notées')}
           </p>
           <button type="button" className="btn primary big" onClick={onSession}>
-            Reprendre
+            {isStale(active) ? 'La terminer' : 'Reprendre'}
           </button>
         </section>
       ) : doneToday ? (
@@ -99,21 +113,21 @@ export function Today({ onSession, onSettings, onCheckin, onEntry }: { onSession
       ) : null}
 
       <section className="card day" aria-label="Ta journée">
-        <button type="button" className="day-ring" onClick={onEntry}>
+        <button type="button" className="day-ring" onClick={onFood}>
           <Ring value={day?.kcal ?? 0} max={target} color="var(--mint)">
             <b className="num">{day?.kcal !== undefined ? int(day.kcal) : '–'}</b>
           </Ring>
           <strong>Calories</strong>
           <small className="num">sur {int(target)}</small>
         </button>
-        <button type="button" className="day-ring" onClick={onEntry}>
+        <button type="button" className="day-ring" onClick={onFood}>
           <Ring value={day?.protein ?? 0} max={macros.protein} color="var(--sky)">
             <b className="num">{day?.protein !== undefined ? `${int(day.protein)}` : '–'}</b>
           </Ring>
           <strong>Protéines</strong>
           <small className="num">sur {macros.protein} g</small>
         </button>
-        <button type="button" className="day-ring" onClick={onEntry}>
+        <button type="button" className="day-ring" onClick={onFood}>
           <Ring value={day?.steps ?? 0} max={STEPS_GOAL} color="var(--amber)">
             <b className="num">{day?.steps !== undefined ? (day.steps >= 10000 ? `${fr1(day.steps / 1000)} k` : int(day.steps)) : '–'}</b>
           </Ring>

@@ -3,7 +3,7 @@ import { connectToken, DATA_REPO, disconnect, exportJson, getToken, importJson, 
 import type { LiftKey, Phase, Profile } from '../core/types';
 import { LIFT_LABEL, LIFTS } from '../core/lifting';
 import { Choice, Keypad, kg, MultiChoice, Sheet, SheetHead } from '../ui/controls';
-import { IconCopy, IconHeart, IconLink } from '../ui/icons';
+import { IconLink } from '../ui/icons';
 import { longDate, todayISO } from '../core/dates';
 
 const SYNC: Record<string, string> = {
@@ -17,7 +17,6 @@ const SYNC: Record<string, string> = {
 
 const SIGNS = ['Fatigue forte', 'Frilosité', 'Faim permanente', 'Libido en baisse', 'Force en chute', 'Vertiges'];
 const TOKEN_URL = `https://github.com/settings/personal-access-tokens/new?name=Fonte&description=${encodeURIComponent('Sauvegarde de Fonte')}&target_name=${DATA_REPO.owner}&expires_in=366&contents=write`;
-const SHORTCUT_URL = './Fonte%20Sante.shortcut';
 
 export function Connect({ onDone }: { onDone?(): void }) {
   const [token, setToken] = useState('');
@@ -64,66 +63,16 @@ export function Connect({ onDone }: { onDone?(): void }) {
   );
 }
 
-function HealthGuide() {
-  const healthAt = useApp((r) => r.healthAt);
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="connect">
-      <p className="muted">{healthAt ? `Dernier envoi reçu le ${new Date(healthAt).toLocaleDateString('fr-FR')} à ${new Date(healthAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.` : 'Aucun envoi reçu pour l\'instant.'}</p>
-      <ol className="guide">
-        <li>
-          <span>
-            <b>Yazio vers Santé.</b> Dans Réglages de l'iPhone, Santé, Accès aux données, Yazio : autorise tout ce qui concerne la nutrition.
-          </span>
-        </li>
-        <li>
-          <span>
-            <b>Copie ton jeton</b> : le Raccourci te le demandera.
-          </span>
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => {
-              const t = getToken();
-              if (t) void navigator.clipboard?.writeText(t).then(() => setCopied(true));
-            }}
-          >
-            <IconCopy size={18} /> {copied ? 'Jeton copié' : 'Copier mon jeton'}
-          </button>
-        </li>
-        <li>
-          <span>
-            <b>Installe le Raccourci</b> et colle le jeton quand il te le demande.
-          </span>
-          <a className="btn ghost" href={SHORTCUT_URL}>
-            <IconHeart size={18} /> Installer Fonte Sante
-          </a>
-        </li>
-        <li>
-          <span>
-            <b>Lance-le une fois à la main</b> dans l'app Raccourcis, et autorise l'accès à Santé.
-          </span>
-        </li>
-        <li>
-          <span>
-            <b>Automatise.</b> App Raccourcis, Automatisation, +, App, Yazio, Est fermée, Exécuter immédiatement, puis choisis Fonte Sante. Refais la même avec Yazio, Est ouverte.
-          </span>
-        </li>
-      </ol>
-      <p className="muted">Tes pas viennent de l'iPhone, via Santé : StepsApp n'est pas nécessaire. Santé donne les totaux du jour, pas le nom des aliments.</p>
-      <p className="muted">Si tes pas arrivent mais pas tes calories, ouvre Santé, Parcourir, Nutrition, Énergie alimentaire. Si c'est vide, Yazio n'envoie rien à Santé. Si c'est rempli, ouvre le Raccourci et vérifie le type de chaque recherche.</p>
-    </div>
-  );
-}
-
 export function Settings({ open, onClose }: { open: boolean; onClose(): void }) {
   const data = useApp((r) => r.data);
   const sync = useApp((r) => r.sync);
+  const healthAt = useApp((r) => r.healthAt);
   const p = data.profile;
   const [pad, setPad] = useState<LiftKey | null>(null);
   const [status, setStatus] = useState<string>();
   const [paste, setPaste] = useState('');
-  const [view, setView] = useState<'main' | 'connect' | 'health'>('main');
+  const [view, setView] = useState<'main' | 'connect'>('main');
+  const [leaving, setLeaving] = useState(false);
   if (!p) return null;
   const linked = !!getToken();
 
@@ -143,17 +92,10 @@ export function Settings({ open, onClose }: { open: boolean; onClose(): void }) 
 
   return (
     <Sheet open={open} onClose={close} label="Réglages" full>
-      <SheetHead title={view === 'connect' ? 'Sauvegarde' : view === 'health' ? 'Santé et Yazio' : 'Réglages'} onClose={close} />
+      <SheetHead title={view === 'connect' ? 'Sauvegarde' : 'Réglages'} onClose={close} />
       {view === 'connect' ? (
         <>
           <Connect onDone={() => setView('main')} />
-          <button type="button" className="link" onClick={() => setView('main')}>
-            Retour
-          </button>
-        </>
-      ) : view === 'health' ? (
-        <>
-          <HealthGuide />
           <button type="button" className="link" onClick={() => setView('main')}>
             Retour
           </button>
@@ -178,10 +120,10 @@ export function Settings({ open, onClose }: { open: boolean; onClose(): void }) 
           )}
 
           <h3>Pas, calories et repas</h3>
-          <p className="muted">Un Raccourci iPhone envoie Santé et Yazio tout seul. Il a besoin de ta sauvegarde.</p>
-          <button type="button" className="btn ghost" disabled={!linked} onClick={() => setView('health')}>
-            Brancher Santé et Yazio
-          </button>
+          <p className="muted">
+            {linked ? 'Ils arrivent de Yazio tout seuls, environ toutes les heures.' : 'Connecte ta sauvegarde pour les recevoir de Yazio.'}
+            {linked && healthAt ? ` Dernière réception le ${new Date(healthAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à ${new Date(healthAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.` : ''}
+          </p>
 
           <h3>Tes maxes</h3>
           <p className="muted">Toutes les charges du programme partent de ces chiffres.</p>
@@ -228,8 +170,15 @@ export function Settings({ open, onClose }: { open: boolean; onClose(): void }) 
             </button>
           </details>
           {linked ? (
-            <button type="button" className="link" onClick={disconnect}>
-              Déconnecter ce téléphone
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                if (leaving) disconnect();
+                setLeaving(!leaving);
+              }}
+            >
+              {leaving ? 'Confirmer la déconnexion' : 'Déconnecter ce téléphone'}
             </button>
           ) : null}
         </div>
@@ -255,7 +204,7 @@ const DEFAULT_MAXES: Record<LiftKey, number> = { squat: 100, bench: 70, deadlift
 
 /** First launch: bring the saved data, or start alone on this phone. */
 export function Setup() {
-  const inSafari = /iPhone|iPad/.test(navigator.userAgent) && !(navigator as unknown as { standalone?: boolean }).standalone;
+  const [inSafari, setInSafari] = useState(/iPhone|iPad/.test(navigator.userAgent) && !(navigator as unknown as { standalone?: boolean }).standalone);
   const [mode, setMode] = useState<'connect' | 'local'>('connect');
   const [tm, setTm] = useState(DEFAULT_MAXES);
   const [pad, setPad] = useState<LiftKey | null>(null);
@@ -263,12 +212,32 @@ export function Setup() {
     <div className="setup">
       <h1>Fonte</h1>
       {inSafari ? (
-        <div className="card install">
-          <h2>Installe-la d'abord</h2>
-          <p>Touche Partager dans Safari, puis Sur l'écran d'accueil. Ouvre ensuite Fonte depuis son icône et continue là-bas.</p>
-        </div>
-      ) : null}
-      {mode === 'connect' ? (
+        <>
+          <div className="card install">
+            <h2>Installe-la d'abord</h2>
+            <ol className="guide">
+              <li>
+                <span>
+                  Touche <b>Partager</b>. S'il n'est pas visible, il est sous les trois points.
+                </span>
+              </li>
+              <li>
+                <span>
+                  Touche <b>Sur l'écran d'accueil</b>, puis <b>Ajouter</b>.
+                </span>
+              </li>
+              <li>
+                <span>
+                  Ouvre <b>Fonte</b> depuis sa nouvelle icône. Tu te connectes là-bas : Safari et l'icône ne partagent pas leurs données.
+                </span>
+              </li>
+            </ol>
+          </div>
+          <button type="button" className="link" onClick={() => setInSafari(false)}>
+            Continuer dans Safari
+          </button>
+        </>
+      ) : mode === 'connect' ? (
         <>
           <p>Connecte ta sauvegarde : ton programme, tes charges et tes données arrivent tout seuls. 2 minutes, une seule fois.</p>
           <Connect />

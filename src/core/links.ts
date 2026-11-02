@@ -63,8 +63,8 @@ function mean3(c: Ctx, end: ISODate, f: keyof DayLog): number | undefined {
 }
 
 const SESSION_DEFS: SessionDef[] = [
-  { id: 'sleep', title: 'Sommeil de la nuit', hi: '7 h 30 ou plus', lo: 'Moins de 7 h', bin: (s, c) => cut(c.days[s.date]?.sleepH, 7.5, 7) },
-  { id: 'sleep3', title: 'Sommeil sur 3 nuits', hi: '7 h 30 ou plus', lo: 'Moins de 7 h', bin: (s, c) => cut(mean3(c, s.date, 'sleepH'), 7.5, 7) },
+  { id: 'sleep', title: 'Sommeil de la nuit', hi: '6 h ou plus', lo: 'Moins de 5 h', bin: (s, c) => cut(c.days[s.date]?.sleepH, 6, 5) },
+  { id: 'sleep3', title: 'Sommeil sur 3 nuits', hi: '6 h ou plus', lo: 'Moins de 5 h', bin: (s, c) => cut(mean3(c, s.date, 'sleepH'), 6, 5) },
   {
     id: 'kcal',
     title: 'Calories de la veille',

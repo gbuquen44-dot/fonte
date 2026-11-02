@@ -69,11 +69,9 @@ export function TimeChart({
   );
   const all = visible.flatMap((s) => s.points);
   const days = Math.max(1, diffDays(to, from));
-  const left = 34;
   const right = 10;
   const top = 8;
   const bottom = 22;
-  const plotW = Math.max(40, width - left - right);
   const plotH = height - top - bottom;
 
   if (!all.length) {
@@ -96,6 +94,9 @@ export function TimeChart({
   if (floor === undefined) lo -= pad;
   hi += pad;
   const ticks = niceTicks(lo, hi);
+  const tickLabel = (t: number) => (Number.isInteger(t) ? int(t) : fr1(t));
+  const left = Math.max(...ticks.map((t) => tickLabel(t).length)) * 6.4 + 10;
+  const plotW = Math.max(40, width - left - right);
   const x = (d: ISODate) => left + (diffDays(d, from) / days) * plotW;
   const y = (v: number) => top + (1 - (v - lo) / (hi - lo)) * plotH;
   const barW = Math.max(3, Math.min(12, plotW / (days + 1) - 2));
@@ -110,8 +111,10 @@ export function TimeChart({
   };
 
   const shown = scrub ?? [...new Set(all.map((p) => p.date))].sort().pop()!;
+  /** A line keeps its last value: a lift missing on that day still shows. */
+  const pointOf = (s: SeriesDef) => (!s.kind || s.kind === 'line' ? s.points.filter((q) => q.date <= shown).pop() : s.points.find((q) => q.date === shown));
   const readings = visible.flatMap((s) => {
-    const p = s.points.find((q) => q.date === shown);
+    const p = pointOf(s);
     return p ? [{ id: s.id, label: s.label, color: s.color, y: p.y }] : [];
   });
 
@@ -142,14 +145,14 @@ export function TimeChart({
             <g key={t}>
               <line x1={left} x2={width - right} y1={y(t)} y2={y(t)} stroke="var(--hair)" />
               <text x={left - 6} y={y(t) + 4} textAnchor="end" className="tick">
-                {Math.abs(t) >= 10000 ? `${int(t / 1000)} k` : Number.isInteger(t) ? int(t) : fr1(t)}
+                {tickLabel(t)}
               </text>
             </g>
           ))}
           {reference ? (
             <g>
               <line x1={left} x2={width - right} y1={y(reference.y)} y2={y(reference.y)} stroke="var(--ink-3)" strokeDasharray="4 4" />
-              <text x={width - right} y={y(reference.y) - 5} textAnchor="end" className="tick">
+              <text x={width - right} y={y(reference.y) - 5} textAnchor="end" className="tick ref">
                 {reference.label}
               </text>
             </g>
@@ -180,7 +183,7 @@ export function TimeChart({
           <line x1={x(shown)} x2={x(shown)} y1={top} y2={height - bottom} stroke="var(--ink-3)" strokeWidth="1" opacity={scrub ? 1 : 0} />
           {visible.map((s) => {
             if (s.kind === 'bars') return null;
-            const p = s.points.find((q) => q.date === shown);
+            const p = pointOf(s);
             return p ? <circle key={s.id} cx={x(p.date)} cy={y(p.y)} r="4" fill={s.color} stroke="var(--night)" strokeWidth="2" /> : null;
           })}
         </svg>

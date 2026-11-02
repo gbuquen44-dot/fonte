@@ -130,10 +130,12 @@ export function Segmented<T extends string | number>({ label, options, value, on
 
 export function Keypad({ title, unit, initial, decimals, onDone, onCancel }: { title: string; unit: string; initial: number; decimals?: boolean; onDone(n: number): void; onCancel(): void }) {
   const [text, setText] = useState(initial ? kg(initial) : '');
+  const [fresh, setFresh] = useState(!!initial);
   const press = (k: string) => {
+    setFresh(false);
     if (k === '⌫') setText((t) => t.slice(0, -1));
-    else if (k === ',') setText((t) => (t.includes(',') || !decimals ? t : `${t || '0'},`));
-    else setText((t) => (t.length >= 7 ? t : t === '0' ? k : t + k));
+    else if (k === ',') setText((t) => (fresh ? '0,' : t.includes(',') || !decimals ? t : `${t || '0'},`));
+    else setText((t) => (fresh || t === '0' ? k : t.length >= 7 ? t : t + k));
   };
   const value = Number(text.replace(',', '.'));
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', decimals ? ',' : '', '0', '⌫'];
@@ -142,8 +144,8 @@ export function Keypad({ title, unit, initial, decimals, onDone, onCancel }: { t
       <div className="keypad-scrim" onClick={onCancel} />
       <div className="keypad">
         <p className="keypad-title">{title}</p>
-        <p className="keypad-value num">
-          {text || '0'} <small>{unit}</small>
+        <p className="keypad-value num" data-fresh={fresh ? 'true' : undefined}>
+          <span>{text || '0'}</span> <small>{unit}</small>
         </p>
         <div className="keypad-keys">
           {keys.map((k, i) =>

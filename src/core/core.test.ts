@@ -615,7 +615,7 @@ describe('links', () => {
     for (let i = 1; i <= 12; i++) {
       const date = `2026-02-${String(i).padStart(2, '0')}`;
       const good = i % 2 === 0;
-      days[date] = { date, sleepH: good ? 8 : 6, updatedAt: 0 };
+      days[date] = { date, sleepH: good ? 7 : 4, updatedAt: 0 };
       sessions.push(done(date, good ? 4 : 2 + (i % 3 === 0 ? 1 : 0)));
     }
     const l = buildLinks(sessions, days, profile, '2026-02-13').find((x) => x.id === 'sleep');
@@ -629,7 +629,7 @@ describe('links', () => {
     const sessions: SessionLog[] = [];
     for (let i = 1; i <= 8; i++) {
       const date = `2026-02-${String(i).padStart(2, '0')}`;
-      days[date] = { date, sleepH: i % 2 ? 8 : 6, updatedAt: 0 };
+      days[date] = { date, sleepH: i % 2 ? 7 : 4, updatedAt: 0 };
       sessions.push(done(date, 3));
     }
     const l = buildLinks(sessions, days, profile, '2026-02-09').find((x) => x.id === 'sleep');

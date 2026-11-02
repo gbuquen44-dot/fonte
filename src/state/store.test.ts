@@ -98,6 +98,25 @@ describe('copy in the repository', () => {
     expect(store.syncState()).toMatchObject({ sync: 'synced', pending: 0 });
   });
 
+  it('drops an empty session left open, not one with sets', async () => {
+    const old = Date.now() - 2 * 3_600_000;
+    const hub = fakeGitHub({
+      'profile/main.json': PROFILE,
+      'sessions/vide.json': { id: 'vide', status: 'active', sets: [], updatedAt: old },
+      'sessions/pleine.json': { id: 'pleine', status: 'active', sets: [{ exId: 'squat' }], updatedAt: old },
+    });
+    const store = await load(hub);
+    expect(Object.keys(store.getData().sessions)).toEqual(['pleine']);
+    expect(hub.state.deletes).toContain('sessions/vide.json');
+  });
+
+  it('calls a session forgotten after 6 hours', async () => {
+    const store = await load(null, null);
+    const s = { updatedAt: 0 } as Parameters<typeof store.isStale>[0];
+    expect(store.isStale(s, 5 * 3_600_000)).toBe(false);
+    expect(store.isStale(s, 7 * 3_600_000)).toBe(true);
+  });
+
   it('updates a file it already knows', async () => {
     const hub = fakeGitHub({ 'profile/main.json': PROFILE });
     const store = await load(hub);

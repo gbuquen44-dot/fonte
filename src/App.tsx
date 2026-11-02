@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { activeSession, connectCloud, seedForPreview, useApp } from './state/store';
+import { activeSession, connectCloud, isStale, seedForPreview, useApp } from './state/store';
 import { Today } from './screens/Today';
 import { Programme } from './screens/Programme';
 import { DayEntry, Nutrition } from './screens/Nutrition';
@@ -59,9 +59,12 @@ export function App() {
 
   useEffect(() => {
     if (!loaded || !data.profile) return;
-    if (active && asked.current === undefined) setSessionOpen(true);
-    else if (!active && !data.days[today]?.checkinAt && asked.current !== today && new Date().getHours() < 12) setCheckin(true);
-    asked.current = today;
+    // He works late: a launch at 1 a.m. is not his morning.
+    const hour = new Date().getHours();
+    const morning = hour >= 5 && hour < 14;
+    if (active && asked.current === undefined && !isStale(active)) setSessionOpen(true);
+    else if (!active && !data.days[today]?.checkinAt && asked.current !== today && morning) setCheckin(true);
+    asked.current = morning ? today : (asked.current ?? '');
   }, [loaded, data.profile, active, today, data.days]);
 
   useEffect(() => {
@@ -89,7 +92,7 @@ export function App() {
       <Aurora mood={sessionOpen ? 'session' : undefined} />
       <main className="main" ref={main}>
         <div className="page" key={tab}>
-          {tab === 'today' ? <Today onSession={() => setSessionOpen(true)} onSettings={() => setSettings(true)} onCheckin={() => setCheckin(true)} onEntry={() => setEntry(true)} /> : null}
+          {tab === 'today' ? <Today onSession={() => setSessionOpen(true)} onSettings={() => setSettings(true)} onCheckin={() => setCheckin(true)} onFood={() => setTab('food')} /> : null}
           {tab === 'programme' ? <Programme onSession={() => setSessionOpen(true)} /> : null}
           {tab === 'food' ? <Nutrition onEntry={() => setEntry(true)} /> : null}
           {tab === 'progress' ? <Progress /> : null}
@@ -99,7 +102,16 @@ export function App() {
       <nav className="tabs" aria-label="Navigation" style={{ '--i': TABS.findIndex((t) => t.id === tab) } as React.CSSProperties}>
         <i className="tabs-pill" aria-hidden="true" />
         {TABS.map(({ id, label, Icon }) => (
-          <button key={id} type="button" className={tab === id ? 'on' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
+          <button
+            key={id}
+            type="button"
+            className={tab === id ? 'on' : ''}
+            aria-current={tab === id ? 'page' : undefined}
+            onClick={() => {
+              if (tab === id) main.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              setTab(id);
+            }}
+          >
             <Icon size={23} />
             <span>{label}</span>
           </button>

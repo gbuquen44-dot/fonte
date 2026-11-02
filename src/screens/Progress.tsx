@@ -135,12 +135,12 @@ export function Progress() {
 
       <section className="card">
         <h2>Calories</h2>
-        <TimeChart series={[{ id: 'kcal', label: 'Calories', color: 'var(--mint)', points: series('kcal') }]} from={from} to={today} format={(n) => `${int(n)} kcal`} reference={{ y: p.maintenance, label: 'maintien' }} empty="Tes calories apparaissent dès que Santé ou ta saisie les envoie." />
+        <TimeChart series={[{ id: 'kcal', label: 'Calories', color: 'var(--mint)', points: series('kcal') }]} from={from} to={today} format={(n) => `${int(n)} kcal`} reference={{ y: p.maintenance, label: 'maintien' }} empty="Tes calories apparaissent dès que Yazio les envoie." />
       </section>
 
       <section className="card">
         <h2>Pas</h2>
-        <TimeChart series={[{ id: 'steps', label: 'Pas', color: 'rgba(255,196,107,.55)', points: series('steps'), kind: 'bars' }]} from={from} to={today} floor={0} format={(n) => int(n)} reference={{ y: 7000, label: '7 000' }} empty="Tes pas apparaissent dès que Santé ou ta saisie les envoie." />
+        <TimeChart series={[{ id: 'steps', label: 'Pas', color: 'rgba(255,196,107,.55)', points: series('steps'), kind: 'bars' }]} from={from} to={today} floor={0} format={(n) => int(n)} reference={{ y: 8000, label: '8 000' }} empty="Tes pas apparaissent dès que Yazio les envoie." />
       </section>
 
       <section className="card">

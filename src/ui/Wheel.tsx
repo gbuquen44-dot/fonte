@@ -137,4 +137,4 @@ export function loadValues(step: number, max: number, keep: number): number[] {
   return out;
 }
 
-export const rowHeight = () => (window.innerHeight < 720 ? 34 : 40);
+export const rowHeight = () => (window.innerHeight < 720 ? 30 : 40);
