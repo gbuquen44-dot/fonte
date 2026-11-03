@@ -37,11 +37,39 @@ export function weekDates(programStart: ISODate, block: number, blockWeek: numbe
 
 type Row = [reps: number, pct: number, rpe: number | undefined, type: SetType, ref?: boolean];
 
+/** Loads at failure for 1 to 12 reps, in % of the max: the usual RPE chart. */
+const FAILURE = [100, 95.5, 92.2, 89.2, 86.3, 83.7, 81.1, 78.6, 76.2, 73.9, 70.7, 68.0];
+
+function repsToFailure(pct: number): number {
+  if (pct >= 100) return 1;
+  for (let i = 1; i < FAILURE.length; i++) {
+    if (pct >= FAILURE[i]) return i + (FAILURE[i - 1] - pct) / (FAILURE[i - 1] - FAILURE[i]);
+  }
+  return FAILURE.length + (FAILURE[FAILURE.length - 1] - pct) / 2.7;
+}
+
+/** The chart's RPE for these reps at this load, to the half point. */
+export function chartRpe(reps: number, pct: number): number {
+  return Math.min(10, Math.max(5, Math.round((10 - (repsToFailure(pct) - reps)) * 2) / 2));
+}
+
+/** Every heavy set gets an RPE: his own, the one of the set it repeats at the same load, or the chart's. */
+function withRpe(rows: Row[]): Row[] {
+  const out: Row[] = [];
+  for (const row of rows) {
+    const [reps, pct, rpe, type, ref] = row;
+    const prev = out[out.length - 1];
+    const repeats = prev && prev[0] === reps && prev[1] === pct && prev[2] !== undefined;
+    out.push(rpe !== undefined || type === 'ramp' ? row : [reps, pct, repeats ? prev[2] : chartRpe(reps, pct), type, ref]);
+  }
+  return out;
+}
+
 function barbell(exId: string, rows: Row[], note?: string): PlannedExercise {
   return {
     exId,
     note,
-    sets: rows.map(([reps, pct, rpe, type, ref], i) => ({ id: `${exId}-${i}`, type, reps, pct, rpe, ref })),
+    sets: withRpe(rows).map(([reps, pct, rpe, type, ref], i) => ({ id: `${exId}-${i}`, type, reps, pct, rpe, ref })),
   };
 }
 
@@ -175,7 +203,7 @@ function tuesday(block: number, week: number): PlannedSession {
       acc('dmMachine', 3, 6, 10),
       acc('oiseau', 3, 12, 15),
       acc('elevMachine', 3, 12, 15, { group: 'a' }),
-      acc('elevPoulie', 3, 12, 15, { group: 'a' }),
+      acc('avantEpaule', 3, 10, 12, { group: 'a' }),
       acc('marteau', 2, 10, 12, { group: 'b' }),
       acc('elevHalteres', 3, 12, 15, { group: 'b' }),
       acc('bayesian', 2, 10, 12),
@@ -201,7 +229,6 @@ function wednesday(block: number, week: number): PlannedSession {
       acc('extV', 2, 10, 12),
       acc('barreFront', 2, 10, 12),
       acc('pecFly', 3, 12, 15),
-      acc('mollets', 3, 12, 15),
     ],
   };
 }
@@ -262,7 +289,6 @@ function sunday(block: number, week: number): PlannedSession {
       acc('legExt', 3, 10, 12),
       acc('abduction', 3, 12, 15, { group: 'a' }),
       acc('releveJambes', 3, 10, 15, { group: 'a' }),
-      acc('mollets', 3, 12, 15),
     ],
   };
 }

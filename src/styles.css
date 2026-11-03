@@ -960,6 +960,14 @@ button.card:active {
   font-size: 14px;
 }
 
+.ex tr.ex-effort td {
+  padding: 0 0 6px;
+  text-align: left;
+  white-space: normal;
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+
 /* Sheets */
 
 .sheet-wrap {

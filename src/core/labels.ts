@@ -28,6 +28,9 @@ export function rirText(rpe: number): string {
   return `il reste ${low} à ${low + 1} reps`;
 }
 
+/** The RPE and what it means: « RPE 7,5 · il reste 2 à 3 reps ». */
+export const effortText = (rpe: number) => `RPE ${String(rpe).replace('.', ',')} · ${rirText(rpe)}`;
+
 export function repsText(reps: number, repsMax?: number, max?: boolean): string {
   if (max) return 'max';
   return repsMax && repsMax !== reps ? `${reps} à ${repsMax}` : `${reps}`;

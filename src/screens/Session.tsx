@@ -23,7 +23,7 @@ import {
   type Step,
 } from '../core/session';
 import { detectPRs, e1rm, LIFT_LABEL, platesPerSide, tonnage } from '../core/lifting';
-import { SET_LABEL, plural, repsText, rirText } from '../core/labels';
+import { effortText, plural, repsText, SET_LABEL } from '../core/labels';
 import { CUES, EXERCISES, REPLACEMENTS } from '../data/exercises';
 import { Choice, int, Keypad, kg, MultiChoice, Sheet, SheetHead } from '../ui/controls';
 import { IconCheck, IconClose, IconDown, IconList, IconMore, IconPlus, IconSkip, IconSwap, IconUndo } from '../ui/icons';
@@ -395,7 +395,7 @@ function SetCard({
 
       <p className="setcard-goal">
         Objectif <b className="num">{target}</b>
-        {p.rpe !== undefined && p.type !== 'ramp' ? <span> · {rirText(p.rpe)}</span> : null}
+        {p.rpe !== undefined ? <span> · {effortText(p.rpe)}</span> : null}
       </p>
 
       <div className="wheels">

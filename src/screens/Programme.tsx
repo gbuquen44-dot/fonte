@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { activeSession, beginSession, doneSessions, useApp } from '../state/store';
 import { DAY_LABEL, dayKey, shortDate, type ISODate } from '../core/dates';
 import { buildSession, estimateMinutes, hardSets, locate, planRows, SESSION_KEYS, weekDates, type PlanRow } from '../core/program';
-import { plural, repsText, rirText, SET_LABEL } from '../core/labels';
+import { effortText, plural, repsText, SET_LABEL } from '../core/labels';
 import { lastBest } from '../core/session';
 import type { LiftKey, PlannedExercise, PlannedSession, SessionKey, SessionLog } from '../core/types';
 import { EXERCISES } from '../data/exercises';
@@ -160,16 +160,23 @@ function ExerciseRows({ e, partner, tm, history }: { e: PlannedExercise; partner
       <table>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} data-type={r.type}>
-              {accessory ? null : <th scope="row">{SET_LABEL[r.type]}</th>}
-              <td className="num strong">{rowText(r)}</td>
-              <td className="num">{r.load !== undefined ? `${kg(r.load)} kg` : last ? `${kg(last.load)} kg` : 'Charge à trouver'}</td>
-            </tr>
+            <React.Fragment key={i}>
+              <tr data-type={r.type}>
+                {accessory ? null : <th scope="row">{SET_LABEL[r.type]}</th>}
+                <td className="num strong">{rowText(r)}</td>
+                <td className="num">{r.load !== undefined ? `${kg(r.load)} kg` : last ? `${kg(last.load)} kg` : 'Charge à trouver'}</td>
+              </tr>
+              {!accessory && r.rpe !== undefined ? (
+                <tr className="ex-effort">
+                  <td colSpan={3}>{effortText(r.rpe)}</td>
+                </tr>
+              ) : null}
+            </React.Fragment>
           ))}
         </tbody>
       </table>
       <p className="ex-foot">
-        {heavy?.rpe !== undefined ? `${heavy.type === 'acc' ? 'Sur chaque série' : SET_LABEL[heavy.type]} : ${rirText(heavy.rpe)}. ` : ''}Repos {rest}.
+        {accessory && heavy?.rpe !== undefined ? `Sur chaque série : ${effortText(heavy.rpe)}. ` : ''}Repos {rest}.
       </p>
       {e.note ? <p className="ex-foot">{e.note}</p> : null}
     </section>
