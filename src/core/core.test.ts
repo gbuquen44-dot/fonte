@@ -148,12 +148,12 @@ describe('program', () => {
 
   it('follows his sheet: exercises, order, sets and supersets', () => {
     const sheet = (k: SessionKey) => buildSession(1, 1, k).exercises.map((e) => `${e.exId}${e.sets[0].type === 'acc' ? ` ${e.sets.length}` : ''}${e.group ? ` ${e.group}` : ''}`);
-    expect(sheet('mon')).toEqual(['deadlift', 'closeGrip', 'smithIncline 3', 'rdl 3', 'tirageNeutre 3 a', 'extCorde 3 a', 'tirageHNeutre 3']);
-    expect(sheet('tue')).toEqual(['tractions 3', 'dmMachine 3', 'oiseau 3', 'elevMachine 3 a', 'avantEpaule 3 a', 'marteau 3 b', 'elevHalteres 3 b', 'bayesian 3', 'pupitre 3 c', 'abdosPoulie 3 c']);
-    expect(sheet('wed')).toEqual(['bench', 'squat', 'smithIncline 3', 'dips 2', 'pecPress 2', 'extV 3', 'barreFront 3', 'pecFly 3']);
+    expect(sheet('mon')).toEqual(['deadlift', 'closeGrip', 'smithIncline 3', 'rdl 3', 'tirageNeutre 3 a', 'extCorde 2 a', 'tirageHNeutre 3']);
+    expect(sheet('tue')).toEqual(['tractions 3', 'dmMachine 3', 'oiseau 3', 'elevMachine 3 a', 'elevPoulie 3 a', 'marteau 2 b', 'elevHalteres 3 b', 'bayesian 2', 'pupitre 2 c', 'abdosPoulie 3 c']);
+    expect(sheet('wed')).toEqual(['bench', 'squat', 'smithIncline 3', 'dips 2', 'pecPress 2', 'extV 2', 'barreFront 2', 'pecFly 3', 'mollets 3']);
     expect(sheet('fri')).toEqual(['squat', 'bench', 'deadlift', 'benchHalteres2ct 2', 'legCurl 2']);
-    expect(sheet('sat')).toEqual(['tractions 2', 'tirageLarge 2', 'tirageHUni 3', 'curlPoulie 3 a', 'extOverhead 3 a', 'tirageHaut 3', 'bayesian 3 b', 'extUni 3 b', 'facePull 3', 'elevMachine 2 c', 'abdos 2 c']);
-    expect(sheet('sun')).toEqual(['squat', 'bench2ct', 'pendulum 3', 'legExt 3', 'abduction 3 a', 'releveJambes 3 a']);
+    expect(sheet('sat')).toEqual(['tractions 2', 'tirageLarge 2', 'tirageHUni 3', 'curlPoulie 2 a', 'extOverhead 2 a', 'tirageHaut 3', 'bayesian 2 b', 'extUni 2 b', 'facePull 3', 'elevMachine 2 c', 'abdos 2 c']);
+    expect(sheet('sun')).toEqual(['squat', 'bench2ct', 'pendulum 3', 'legExt 3', 'abduction 3 a', 'releveJambes 3 a', 'mollets 3']);
     expect(buildSession(1, 1, 'tue').exercises[0].sets.every((x) => x.max)).toBe(true);
     expect(buildSession(1, 1, 'sat').exercises[0].sets.every((x) => x.max)).toBe(true);
   });
@@ -171,9 +171,9 @@ describe('program', () => {
     expect(kilos('sun', 'bench2ct')).toEqual([[1, 1, 67.5], [1, 1, 72.5], [1, 1, 77.5], [3, 5, 67.5]]);
   });
 
-  it('counts 140 hard sets and 47 exercises in a full week', () => {
-    expect(buildWeek(1, 1).reduce((a, s) => a + hardSets(s), 0)).toBe(140);
-    expect(buildWeek(1, 1).flatMap((s) => s.exercises)).toHaveLength(47);
+  it('counts 136 hard sets and 49 exercises in a full week', () => {
+    expect(buildWeek(1, 1).reduce((a, s) => a + hardSets(s), 0)).toBe(136);
+    expect(buildWeek(1, 1).flatMap((s) => s.exercises)).toHaveLength(49);
   });
 
   it('keeps every lift in its session through the block', () => {
@@ -211,6 +211,11 @@ describe('program', () => {
     expect(v.quads).toBeGreaterThanOrEqual(6);
     expect(v.biceps).toBeGreaterThanOrEqual(8);
     expect(v.triceps).toBeGreaterThanOrEqual(8);
+    expect(v.mollets).toBeGreaterThanOrEqual(4);
+    expect(v.deltLat).toBeCloseTo(12.5);
+    expect(v.deltAnt).toBeCloseTo(13);
+    expect(v.biceps).toBeCloseTo(19.5);
+    expect(v.triceps).toBeCloseTo(23.5);
   });
 });
 
