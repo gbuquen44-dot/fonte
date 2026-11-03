@@ -146,7 +146,7 @@ export function Settings({ open, onClose }: { open: boolean; onClose(): void }) 
           <MultiChoice label="Signes" value={p.symptoms} options={SIGNS} onChange={(symptoms) => updateProfile({ symptoms })} />
 
           <h3>Démarrage du programme</h3>
-          <p className="muted">{longDate(p.programStart)}. Choisis un mardi.</p>
+          <p className="muted">{longDate(p.programStart)}. Les semaines commencent le lundi.</p>
           <input id="program-start" type="date" value={p.programStart} onChange={(e) => e.target.value && updateProfile({ programStart: e.target.value })} />
 
           <h3>Exporter</h3>

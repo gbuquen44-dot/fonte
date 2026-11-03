@@ -24,10 +24,12 @@ export function rirText(rpe: number): string {
   if (left <= 0) return 'à fond';
   if (Number.isInteger(left)) return `il reste ${left} rep${left > 1 ? 's' : ''}`;
   const low = Math.floor(left);
+  if (low === 0) return 'à fond ou presque';
   return `il reste ${low} à ${low + 1} reps`;
 }
 
-export function repsText(reps: number, repsMax?: number): string {
+export function repsText(reps: number, repsMax?: number, max?: boolean): string {
+  if (max) return 'max';
   return repsMax && repsMax !== reps ? `${reps} à ${repsMax}` : `${reps}`;
 }
 

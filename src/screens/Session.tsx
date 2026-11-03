@@ -351,7 +351,7 @@ function SetCard({
   const body = kind === 'bodyweight';
   const plates = kind === 'barbell' && load >= 20 ? platesPerSide(load) : null;
   const typeLabel = SET_LABEL[p.type];
-  const target = `${repsText(p.reps, p.repsMax)} ${plural(p.repsMax ?? p.reps, 'rep')}`;
+  const target = p.max ? 'le max de reps' : `${repsText(p.reps, p.repsMax)} ${plural(p.repsMax ?? p.reps, 'rep')}`;
   const others = ex.sets.length;
 
   return (
@@ -470,7 +470,7 @@ function Overview({ s, current, onEdit }: { s: SessionLog; current?: number; onE
   );
 }
 
-const Planned = ({ p }: { p: PlannedSet }) => <>{repsText(p.reps, p.repsMax)} {plural(p.repsMax ?? p.reps, 'rep')}</>;
+const Planned = ({ p }: { p: PlannedSet }) => <>{p.max ? 'max de reps' : `${repsText(p.reps, p.repsMax)} ${plural(p.repsMax ?? p.reps, 'rep')}`}</>;
 
 function SessionMenu({ s, step, onClose, onEnd, onAbandon }: { s: SessionLog; step: Step | null; onClose(): void; onEnd(): void; onAbandon(): void }) {
   const [view, setView] = useState<'main' | 'swap' | 'abandon'>('main');

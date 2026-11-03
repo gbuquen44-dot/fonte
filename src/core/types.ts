@@ -44,6 +44,8 @@ export interface PlannedSet {
   rpe?: number;
   /** The fixed load used to read the form of the day. */
   ref?: boolean;
+  /** As many reps as he can. */
+  max?: boolean;
 }
 
 export interface PlannedExercise {
@@ -54,7 +56,7 @@ export interface PlannedExercise {
   sets: PlannedSet[];
 }
 
-export type SessionKey = 'tue' | 'wed' | 'fri' | 'sat' | 'sun';
+export type SessionKey = 'mon' | 'tue' | 'wed' | 'fri' | 'sat' | 'sun';
 
 export interface PlannedSession {
   key: SessionKey;
@@ -183,6 +185,8 @@ export interface Profile {
   goalDate: ISODate;
   milestones: { label: string; total: number }[];
   programStart: ISODate;
+  /** A session done on another day than planned, or a day without the gym. */
+  moves?: Record<ISODate, SessionKey | 'off'>;
   maintenance: number;
   maintenanceLow: number;
   maintenanceHigh: number;

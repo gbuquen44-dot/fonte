@@ -126,7 +126,7 @@ export function prefill(s: SessionLog, st: Step, tm: Record<LiftKey, number>, hi
 
   const here = s.sets.filter((x) => x.exId === ex.exId);
   const last = lastSetsOf(ex.exId, history);
-  const top = ps.repsMax ?? ps.reps;
+  const top = ps.max ? Infinity : ps.repsMax ?? ps.reps;
   if (here.length) {
     const prev = here[here.length - 1];
     return { load: prev.load, reps: Math.min(prev.reps || ps.reps, top) };
@@ -137,7 +137,7 @@ export function prefill(s: SessionLog, st: Step, tm: Record<LiftKey, number>, hi
       load: START_LOAD[kind],
       reps: ps.reps,
       first: true,
-      hint: kind === 'bodyweight' ? 'Première fois : 0 kg de lest si tu n\'en mets pas.' : 'Première fois : prends une charge où il te reste 2 reps.',
+      hint: kind === 'bodyweight' ? 'Première fois : 0 kg de lest si tu n\'en mets pas.' : 'Première fois : mets ta charge habituelle, l\'appli la retient.',
     };
   }
 

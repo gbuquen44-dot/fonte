@@ -79,7 +79,7 @@ function fakeSets(plan: PlannedExercise[], tm: Profile['tm'], at: number, boost:
 export function previewSessions(): Record<string, SessionLog> {
   const out: Record<string, SessionLog> = {};
   const today = todayISO();
-  const keys: SessionKey[] = ['tue', 'fri', 'sun', 'wed', 'sat'];
+  const keys: SessionKey[] = ['mon', 'tue', 'wed', 'fri', 'sat', 'sun'];
   for (let i = 0; i < 26; i++) {
     const date = addDays(today, -44 + i * 1.7 | 0);
     const key = keys[i % keys.length];

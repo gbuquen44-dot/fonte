@@ -37,7 +37,7 @@ export function Today({ onSession, onSettings, onCheckin, onFood }: { onSession(
   const doneToday = planned ? sameSession(sessions, planned) : undefined;
   const upcoming = nextPlanned(today, p, sessions);
   const tip = useMemo(() => tipOfDay({ today, profile: p, days: data.days, sessions, planned: doneToday ? null : planned }), [today, p, data.days, sessions, planned, doneToday]);
-  const loc = locate(today, p.programStart);
+  const loc = locate(today, p.programStart, p.moves);
   const target = targetKcal(p.kcalPlan, today) ?? 0;
   const lastWeight = useMemo(() => weighIns(data.days).pop()?.weight ?? 68, [data.days]);
   const macros = macrosFor(target, lastWeight);

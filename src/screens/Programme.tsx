@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { activeSession, beginSession, doneSessions, useApp } from '../state/store';
-import { addDays, DAY_LABEL, dayKey, shortDate, type ISODate } from '../core/dates';
-import { dateOfSession, estimateMinutes, hardSets, locate, planRows, buildSession, type PlanRow } from '../core/program';
+import { DAY_LABEL, dayKey, shortDate, type ISODate } from '../core/dates';
+import { buildSession, estimateMinutes, hardSets, locate, planRows, SESSION_KEYS, weekDates, type PlanRow } from '../core/program';
 import { plural, repsText, rirText, SET_LABEL } from '../core/labels';
 import { lastBest } from '../core/session';
 import type { LiftKey, PlannedExercise, PlannedSession, SessionKey, SessionLog } from '../core/types';
@@ -12,8 +12,6 @@ import { useToday } from '../ui/hooks';
 import { prepareAudio } from '../ui/sound';
 import { sameSession } from './Today';
 
-const WEEK: (SessionKey | null)[] = ['tue', 'wed', null, 'fri', 'sat', 'sun', null];
-const REST_LABEL = ['', '', 'Repos', '', '', '', 'Repos'];
 
 function minutes(sec: number) {
   const m = Math.round((sec / 60) * 2) / 2;
@@ -25,18 +23,20 @@ export function Programme({ onSession }: { onSession(): void }) {
   const p = data.profile!;
   const today = useToday();
   const sessions = useMemo(() => doneSessions(data), [data.sessions]);
-  const here = locate(today, p.programStart);
+  const here = locate(today, p.programStart, p.moves);
   const [block, setBlock] = useState(here?.block ?? 1);
   const [week, setWeek] = useState(here?.blockWeek ?? 1);
-  const [open, setOpen] = useState<SessionKey | null>(here?.key ?? 'tue');
+  const [open, setOpen] = useState<SessionKey | null>(here?.key ?? 'mon');
   const [legend, setLegend] = useState(false);
   const active = activeSession(data);
+  const days = weekDates(p.programStart, block, week).map((date) => ({ date, key: locate(date, p.programStart, p.moves)?.key ?? null }));
+  const skipped = SESSION_KEYS.filter((k) => !days.some((d) => d.key === k));
 
   return (
     <div className="screen">
       <header className="head">
         <div>
-          <p>5 séances, lundi et jeudi off</p>
+          <p>6 séances, jeudi off</p>
           <h1>Programme</h1>
         </div>
       </header>
@@ -60,20 +60,16 @@ export function Programme({ onSession }: { onSession(): void }) {
       {legend ? <Legend /> : null}
 
       <ol className="days">
-        {WEEK.map((key, i) => {
+        {days.map(({ date, key }) => {
           if (!key) {
-            const date = addDays(dateOfSession(p.programStart, block, week, 'tue'), i);
             return (
-              <li key={i} className="day-off">
+              <li key={date} className="day-off">
                 <span>{DAY_LABEL[dayKey(date)]}</span>
-                <span>
-                  {shortDate(date)} · {REST_LABEL[i]}
-                </span>
+                <span>{shortDate(date)} · Repos</span>
               </li>
             );
           }
           const plan = buildSession(block, week, key);
-          const date = dateOfSession(p.programStart, block, week, key);
           return (
             <DayCard
               key={key}
@@ -94,6 +90,12 @@ export function Programme({ onSession }: { onSession(): void }) {
             />
           );
         })}
+        {skipped.map((key) => (
+          <li key={key} className="day-off">
+            <span>{buildSession(block, week, key).title}</span>
+            <span>Pas cette semaine</span>
+          </li>
+        ))}
       </ol>
     </div>
   );
@@ -141,7 +143,7 @@ function DayCard({ plan, date, isToday, done, open, onToggle, tm, history, busy,
 }
 
 function rowText(r: PlanRow) {
-  return `${r.count} × ${repsText(r.reps, r.repsMax)}`;
+  return `${r.count} × ${repsText(r.reps, r.repsMax, r.max)}`;
 }
 
 function ExerciseRows({ e, partner, tm, history }: { e: PlannedExercise; partner?: PlannedExercise; tm: Record<LiftKey, number>; history: SessionLog[] }) {
