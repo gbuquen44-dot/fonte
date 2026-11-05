@@ -128,9 +128,9 @@ function DayCard({ plan, date, isToday, done, open, onToggle, tm, history, busy,
       {open ? (
         <div className="daycard-body">
           {plan.subtitle ? <p className="daycard-sub">{plan.subtitle}</p> : null}
-          {plan.exercises.map((e, i) => (
-            <ExerciseRows key={`${e.exId}-${i}`} e={e} partner={e.group ? plan.exercises.find((x) => x.group === e.group && x.exId !== e.exId) : undefined} tm={tm} history={history} />
-          ))}
+          {blocks(plan.exercises).map((b, i) =>
+            b.length > 1 ? <Superset key={i} members={b} tm={tm} history={history} /> : <ExerciseRows key={i} e={b[0]} tm={tm} history={history} />,
+          )}
           {!done && !busy ? (
             <button type="button" className={`btn ${isToday ? 'primary big' : 'ghost'}`} onClick={onStart}>
               {isToday ? 'Lancer la séance' : 'Lancer cette séance'}
@@ -146,17 +146,33 @@ function rowText(r: PlanRow) {
   return `${r.count} × ${repsText(r.reps, r.repsMax, r.max)}`;
 }
 
-function ExerciseRows({ e, partner, tm, history }: { e: PlannedExercise; partner?: PlannedExercise; tm: Record<LiftKey, number>; history: SessionLog[] }) {
-  const def = EXERCISES[e.exId];
+/** The exercises in order, each superset as one block. */
+function blocks(list: PlannedExercise[]): PlannedExercise[][] {
+  const out: PlannedExercise[][] = [];
+  for (const e of list) {
+    const prev = out[out.length - 1];
+    if (e.group && prev?.[0].group === e.group) prev.push(e);
+    else out.push([e]);
+  }
+  return out;
+}
+
+function rowsOf(e: PlannedExercise, tm: Record<LiftKey, number>, history: SessionLog[]) {
   const rows = planRows(e, tm);
   const accessory = rows.every((r) => r.type === 'acc');
   const last = accessory ? lastBest(e.exId, history) : undefined;
   const heavy = rows.find((r) => r.type === 'top' || r.type === 'test') ?? rows.find((r) => r.type === 'work' || r.type === 'acc');
-  const rest = def ? minutes(def.rest) : '';
+  const effort = accessory && heavy?.rpe !== undefined ? effortText(heavy.rpe) : undefined;
+  const loadText = (r: PlanRow) => (r.load !== undefined ? `${kg(r.load)} kg` : last ? `${kg(last.load)} kg` : 'Charge à trouver');
+  return { rows, accessory, effort, loadText };
+}
+
+function ExerciseRows({ e, tm, history }: { e: PlannedExercise; tm: Record<LiftKey, number>; history: SessionLog[] }) {
+  const def = EXERCISES[e.exId];
+  const { rows, accessory, effort, loadText } = rowsOf(e, tm, history);
   return (
     <section className="ex">
       <h3>{def?.name ?? e.exId}</h3>
-      {partner ? <p className="ex-tag">En superset avec {EXERCISES[partner.exId]?.name}</p> : null}
       <table>
         <tbody>
           {rows.map((r, i) => (
@@ -164,7 +180,7 @@ function ExerciseRows({ e, partner, tm, history }: { e: PlannedExercise; partner
               <tr data-type={r.type}>
                 {accessory ? null : <th scope="row">{SET_LABEL[r.type]}</th>}
                 <td className="num strong">{rowText(r)}</td>
-                <td className="num">{r.load !== undefined ? `${kg(r.load)} kg` : last ? `${kg(last.load)} kg` : 'Charge à trouver'}</td>
+                <td className="num">{loadText(r)}</td>
               </tr>
               {!accessory && r.rpe !== undefined ? (
                 <tr className="ex-effort">
@@ -176,9 +192,46 @@ function ExerciseRows({ e, partner, tm, history }: { e: PlannedExercise; partner
         </tbody>
       </table>
       <p className="ex-foot">
-        {accessory && heavy?.rpe !== undefined ? `Sur chaque série : ${effortText(heavy.rpe)}. ` : ''}Repos {rest}.
+        {effort ? `Sur chaque série : ${effort}. ` : ''}Repos {def ? minutes(def.rest) : ''}.
       </p>
       {e.note ? <p className="ex-foot">{e.note}</p> : null}
+    </section>
+  );
+}
+
+/** A superset shown once: one line per exercise, the rest after the last one. */
+function Superset({ members, tm, history }: { members: PlannedExercise[]; tm: Record<LiftKey, number>; history: SessionLog[] }) {
+  const views = members.map((e) => rowsOf(e, tm, history));
+  if (views.some((v) => v.rows.length !== 1 || !v.accessory)) {
+    return (
+      <>
+        {members.map((e) => (
+          <ExerciseRows key={e.exId} e={e} tm={tm} history={history} />
+        ))}
+      </>
+    );
+  }
+  const efforts = [...new Set(views.map((v) => v.effort))];
+  const last = EXERCISES[members[members.length - 1].exId];
+  return (
+    <section className="ex ex-pair">
+      <h3>Superset</h3>
+      <p className="ex-tag">Une série de chaque, à la suite, puis repos.</p>
+      <table>
+        <tbody>
+          {members.map((e, i) => (
+            <tr key={e.exId}>
+              <th scope="row">{EXERCISES[e.exId]?.name ?? e.exId}</th>
+              <td className="num strong">{rowText(views[i].rows[0])}</td>
+              <td className="num">{views[i].loadText(views[i].rows[0])}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="ex-foot">
+        {efforts.length === 1 && efforts[0] ? `Sur chaque série : ${efforts[0]}. ` : ''}Repos {last ? minutes(last.rest) : ''} après les deux.
+      </p>
+      {members.map((e) => (e.note ? <p key={e.exId} className="ex-foot">{e.note}</p> : null))}
     </section>
   );
 }

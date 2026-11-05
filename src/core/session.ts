@@ -1,4 +1,4 @@
-import type { EquipKind, LiftKey, LoggedSet, PlannedExercise, PlannedSession, PlannedSet, PostCheck, SessionLog } from './types';
+import type { EquipKind, LiftKey, LoggedSet, PlannedExercise, PlannedSession, PlannedSet, PostCheck, Scheme, SessionLog } from './types';
 import { EXERCISES } from '../data/exercises';
 import { detectPRs, floorLoad, roundLoad } from './lifting';
 import { exactRpe } from './program';
@@ -193,6 +193,16 @@ export function addSet(s: SessionLog, exIndex: number, now: number): SessionLog 
   const model = ex.sets[ex.sets.length - 1];
   const n = ex.sets.filter((x) => x.id.includes('-x')).length + 1;
   ex.sets.push({ ...model, id: `${model.id.split('-x')[0]}-x${n}`, type: model.type === 'ramp' ? 'work' : model.type, ref: false });
+  return { ...s, plan, updatedAt: now };
+}
+
+/** Rebuilds an exercise to one of its schemes, as long as none of its sets is done. */
+export function pickScheme(s: SessionLog, exIndex: number, scheme: Scheme, now: number): SessionLog {
+  const ex = s.plan[exIndex];
+  if (!ex.schemes || ex.sets.some((x) => isDone(s, x.id) || s.skipped.includes(x.id))) return s;
+  const plan = structuredClone(s.plan);
+  const model = ex.sets[0];
+  plan[exIndex].sets = Array.from({ length: scheme.sets }, (_, i) => ({ ...model, id: `${ex.exId}-${scheme.sets}x${scheme.reps}-${i}`, reps: scheme.reps, repsMax: scheme.reps }));
   return { ...s, plan, updatedAt: now };
 }
 

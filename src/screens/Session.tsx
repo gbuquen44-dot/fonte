@@ -11,6 +11,7 @@ import {
   logSet,
   needsEffort,
   peekNext,
+  pickScheme,
   prefill,
   progress,
   readForm,
@@ -256,7 +257,7 @@ function Guide({ s, st, history, tm }: { s: SessionLog; st: Step; history: Sessi
   const next = peekNext(s, st);
   const nextName = next && next.ex !== st.ex ? EXERCISES[s.plan[next.ex].exId]?.name : undefined;
   const adjusted = (s.adjust[ex.exId] ?? 1) < 1 && p.type !== 'ramp';
-  const lines = [ex.note, first ? CUES[ex.exId] : undefined, init.hint, adjusted ? 'Charge allégée pour aujourd\'hui.' : undefined].filter(Boolean) as string[];
+  const lines = [ex.schemes ? undefined : ex.note, first ? CUES[ex.exId] : undefined, init.hint, adjusted ? 'Charge allégée pour aujourd\'hui.' : undefined].filter(Boolean) as string[];
   return (
     <div className="s-guide">
       {warm ? (
@@ -371,6 +372,22 @@ function SetCard({
           </button>
         ) : null}
       </div>
+
+      {ex.schemes && !editing && !s.sets.some((x) => x.exId === ex.exId) ? (
+        <div className="setcard-scheme" role="radiogroup" aria-label="Séries selon ta séance de SBD">
+          <span>Selon ta séance</span>
+          <div>
+            {ex.schemes.map((sc) => {
+              const on = sc.sets === ex.sets.length && sc.reps === p.reps;
+              return (
+                <button key={`${sc.sets}x${sc.reps}`} type="button" role="radio" aria-checked={on} className={on ? 'on' : ''} onClick={() => saveSession(pickScheme(s, st.ex, sc, Date.now()))}>
+                  {sc.sets} × {sc.reps}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       <ol className="setdots" aria-label="Séries de l'exercice">
         {ex.sets.map((x, i) => {

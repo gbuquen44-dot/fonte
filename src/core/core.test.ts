@@ -14,6 +14,7 @@ import {
   flowSteps,
   logSet,
   peekNext,
+  pickScheme,
   prefill,
   progress,
   readForm,
@@ -25,6 +26,7 @@ import {
 } from './session';
 import { estimateMaintenance, ewma, gelDates, gelEnd, macrosFor, mondayDecision, regress, stepsRead, targetKcal } from './energy';
 import { plannedVolume } from './volume';
+import { kcalBands, periodStats, rollingMean, trendRead } from './weight';
 import { analyze, evidence, fitEffect, sessionPerformance } from './insights';
 import { tipOfDay } from './rules';
 import type { DayLog, Profile, SessionKey, SessionLog } from './types';
@@ -156,7 +158,7 @@ describe('program', () => {
     expect(sheet('mon')).toEqual(['deadlift', 'closeGrip', 'smithIncline 3', 'rdl 3', 'tirageNeutre 3 a', 'extCorde 2 a', 'tirageHNeutre 3']);
     expect(sheet('tue')).toEqual(['tractions 3', 'dmMachine 3', 'oiseau 3', 'elevMachine 3 a', 'avantEpaule 3 a', 'marteau 2 b', 'elevHalteres 3 b', 'bayesian 2', 'pupitre 2 c', 'abdosPoulie 3 c']);
     expect(sheet('wed')).toEqual(['bench', 'squat', 'smithIncline 3', 'dips 2', 'pecPress 2', 'extV 2', 'barreFront 2', 'pecFly 3']);
-    expect(sheet('fri')).toEqual(['squat', 'bench', 'deadlift', 'benchHalteres2ct 2', 'legCurl 2']);
+    expect(sheet('fri')).toEqual(['squat', 'bench', 'deadlift', 'benchHalteres2ct 4', 'legCurl 2']);
     expect(sheet('sat')).toEqual(['tractions 2', 'tirageLarge 2', 'tirageHUni 3', 'curlPoulie 2 a', 'extOverhead 2 a', 'tirageHaut 3', 'bayesian 2 b', 'extUni 2 b', 'facePull 3', 'elevMachine 2 c', 'abdos 2 c']);
     expect(sheet('sun')).toEqual(['squat', 'bench2ct', 'pendulum 3', 'legExt 3', 'abduction 3 a', 'releveJambes 3 a']);
     expect(buildSession(1, 1, 'tue').exercises[0].sets.every((x) => x.max)).toBe(true);
@@ -176,8 +178,8 @@ describe('program', () => {
     expect(kilos('sun', 'bench2ct')).toEqual([[1, 1, 67.5], [1, 1, 72.5], [1, 1, 77.5], [3, 5, 67.5]]);
   });
 
-  it('counts 130 hard sets and 47 exercises in a full week', () => {
-    expect(buildWeek(1, 1).reduce((a, s) => a + hardSets(s), 0)).toBe(130);
+  it('counts 132 hard sets and 47 exercises in a full week', () => {
+    expect(buildWeek(1, 1).reduce((a, s) => a + hardSets(s), 0)).toBe(132);
     expect(buildWeek(1, 1).flatMap((s) => s.exercises)).toHaveLength(47);
   });
 
@@ -232,9 +234,9 @@ describe('program', () => {
     expect(v.triceps).toBeGreaterThanOrEqual(8);
     expect(v.mollets ?? 0).toBe(0);
     expect(v.deltLat).toBeCloseTo(9.5);
-    expect(v.deltAnt).toBeCloseTo(16);
+    expect(v.deltAnt).toBeCloseTo(17);
     expect(v.biceps).toBeCloseTo(19.5);
-    expect(v.triceps).toBeCloseTo(23.5);
+    expect(v.triceps).toBeCloseTo(24.5);
   });
 });
 
@@ -374,6 +376,20 @@ describe('session flow', () => {
     expect(readForm(s, refStep, { ...asked, rpe: 6 }, [], TM)?.level).toBe('lighter');
     expect(readForm(s, refStep, { ...asked, rpe: 7 }, [], TM)?.level).toBe('light');
     expect(readForm(s, steps[0], { ...asked, rpe: 9 }, [], TM)).toBeNull();
+  });
+
+  it('lets him pick 4 × 5 or 3 × 3 for the dumbbell 2CT, before its first set', () => {
+    const s = createSession(buildSession(1, 1, 'fri'), '2026-11-05', 's4', 1000);
+    const i = s.plan.findIndex((e) => e.exId === 'benchHalteres2ct');
+    expect(s.plan[i].sets.map((x) => x.reps)).toEqual([5, 5, 5, 5]);
+    const three = pickScheme(s, i, { sets: 3, reps: 3 }, 2000);
+    expect(three.plan[i].sets.map((x) => [x.reps, x.repsMax])).toEqual([[3, 3], [3, 3], [3, 3]]);
+    expect(new Set(three.plan[i].sets.map((x) => x.id)).size).toBe(3);
+    expect(s.plan[i].sets).toHaveLength(4);
+    const st = flowSteps(three.plan).find((x) => x.ex === i)!;
+    const started = logSet(three, st, { load: 30, reps: 3, rpe: 9.5 }, 3000);
+    expect(pickScheme(started, i, { sets: 4, reps: 5 }, 4000)).toBe(started);
+    expect(pickScheme(s, 0, { sets: 3, reps: 3 }, 2000)).toBe(s);
   });
 
   it('reads the form at the load he really lifted', () => {
@@ -738,5 +754,51 @@ describe('words', () => {
     expect(rirText(9)).toBe('il reste 1 rep');
     expect(rirText(8.5)).toBe('il reste 1 à 2 reps');
     expect(rirText(10)).toBe('à fond');
+  });
+});
+
+describe('weight', () => {
+  const w = [
+    { date: '2026-11-01', weight: 68 },
+    { date: '2026-11-02', weight: 67.6 },
+    { date: '2026-11-03', weight: 67.8 },
+    { date: '2026-11-05', weight: 67.4 },
+    { date: '2026-11-06', weight: 67.2 },
+    { date: '2026-11-07', weight: 67.3 },
+  ];
+
+  it('averages the weigh-ins of the last n days, gaps included', () => {
+    const m = rollingMean(w, 4);
+    expect(m.find((x) => x.date === '2026-11-03')?.value).toBeCloseTo((68 + 67.6 + 67.8) / 3);
+    expect(m.find((x) => x.date === '2026-11-05')?.value).toBeCloseTo((67.6 + 67.8 + 67.4) / 3);
+    expect(periodStats(w, '2026-11-02', '2026-11-05')).toMatchObject({ n: 3, min: 67.4, max: 67.8 });
+    expect(periodStats(w, '2026-11-02', '2026-11-05').mean).toBeCloseTo(67.6);
+    expect(periodStats(w, '2026-10-01', '2026-10-05')).toEqual({ n: 0 });
+  });
+
+  it('cuts the calorie plan into one band per step, clipped to the period', () => {
+    const plan = [
+      { from: '2026-11-01', kcal: 1800, reason: 'Fin de sèche' },
+      { from: '2026-11-02', kcal: 2000, reason: 'Palier 1' },
+      { from: '2026-11-07', kcal: 2200, reason: 'Palier 2' },
+    ];
+    expect(kcalBands(plan, '2026-10-20', '2026-11-05')).toEqual([
+      { from: '2026-11-01', to: '2026-11-01', kcal: 1800 },
+      { from: '2026-11-02', to: '2026-11-05', kcal: 2000 },
+    ]);
+    expect(kcalBands(plan, '2026-11-03', '2026-11-08')).toEqual([
+      { from: '2026-11-03', to: '2026-11-06', kcal: 2000 },
+      { from: '2026-11-07', to: '2026-11-08', kcal: 2200 },
+    ]);
+  });
+
+  it('compares the last n days with the n days before', () => {
+    const r = trendRead(w, '2026-11-07', 3);
+    expect(r.now).toMatchObject({ n: 3 });
+    expect(r.before).toMatchObject({ n: 2 });
+    expect(r.delta).toBeCloseTo((67.4 + 67.2 + 67.3) / 3 - (67.6 + 67.8) / 2);
+    expect(r.verdict).toBe('down');
+    expect(trendRead(w, '2026-11-07', 7).verdict).toBeUndefined();
+    expect(trendRead([{ date: '2026-11-01', weight: 67.5 }, { date: '2026-11-04', weight: 67.6 }], '2026-11-04', 3).verdict).toBe('flat');
   });
 });

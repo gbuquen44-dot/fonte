@@ -1,13 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { doneSessions, useApp } from '../state/store';
 import { addDays, dateRange, diffDays, shortDate, type ISODate } from '../core/dates';
-import { ewma, weighIns } from '../core/energy';
+import { weighIns } from '../core/energy';
 import { currentE1rm, e1rmSeries, LIFT_LABEL, LIFTS, liftTrend, rolling3 } from '../core/lifting';
 import { loggedVolume } from '../core/volume';
+import { rollingMean } from '../core/weight';
 import type { LiftKey, PRBadge } from '../core/types';
 import { TimeChart, TotalRoad, VolumeBars, type Pt } from '../ui/Chart';
 import { fr1, hours, int, kg, Segmented } from '../ui/controls';
-import { useToday } from '../ui/hooks';
+import { IconChevron } from '../ui/icons';
+import { useStored, useToday } from '../ui/hooks';
+import { WeightSheet } from './Weight';
 
 const COLORS: Record<LiftKey, string> = { squat: 'var(--c-squat)', bench: 'var(--c-bench)', deadlift: 'var(--c-dead)' };
 
@@ -16,6 +19,8 @@ export function Progress() {
   const p = data.profile!;
   const today = useToday();
   const [range, setRange] = useState(30);
+  const [weightOpen, setWeightOpen] = useState(false);
+  const [trendDays, setTrendDays] = useStored('fonte.trendDays', 5);
   const from = addDays(today, -range);
   const sessions = useMemo(() => doneSessions(data), [data.sessions]);
   const series = (f: 'sleepH' | 'recovery' | 'kcal' | 'steps'): Pt[] =>
@@ -100,11 +105,16 @@ export function Progress() {
       </section>
 
       <section className="card">
-        <h2>Poids</h2>
+        <div className="card-head">
+          <h2>Poids</h2>
+          <button type="button" className="card-more" onClick={() => setWeightOpen(true)}>
+            Détail <IconChevron size={16} />
+          </button>
+        </div>
         <TimeChart
           series={[
             { id: 'raw', label: 'Pesées', color: 'var(--ink-3)', points: weights.map((w) => ({ date: w.date, y: w.weight })), kind: 'dots' },
-            { id: 'trend', label: 'Tendance', color: 'var(--mint)', points: ewma(weights).map((t) => ({ date: t.date, y: t.value })) },
+            { id: 'trend', label: `Moyenne ${trendDays} jours`, color: 'var(--mint)', points: rollingMean(weights, trendDays).map((t) => ({ date: t.date, y: t.value })) },
           ]}
           from={from}
           to={today}
@@ -112,6 +122,7 @@ export function Progress() {
           empty="Ta courbe apparaît après ta première pesée."
         />
       </section>
+      <WeightSheet open={weightOpen} onClose={() => setWeightOpen(false)} days={trendDays} onDays={setTrendDays} />
 
       <section className="card">
         <h2>Sommeil</h2>

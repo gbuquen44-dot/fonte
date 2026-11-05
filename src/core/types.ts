@@ -53,7 +53,14 @@ export interface PlannedExercise {
   /** Exercises sharing a group run as a superset. */
   group?: string;
   note?: string;
+  /** Set schemes he picks from in the session, the first one planned. */
+  schemes?: Scheme[];
   sets: PlannedSet[];
+}
+
+export interface Scheme {
+  sets: number;
+  reps: number;
 }
 
 export type SessionKey = 'mon' | 'tue' | 'wed' | 'fri' | 'sat' | 'sun';

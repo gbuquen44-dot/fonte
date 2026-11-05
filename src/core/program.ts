@@ -1,4 +1,4 @@
-import type { LiftKey, PlannedExercise, PlannedSession, PlannedSet, Profile, SessionKey, SetType } from './types';
+import type { LiftKey, PlannedExercise, PlannedSession, PlannedSet, Profile, Scheme, SessionKey, SetType } from './types';
 import { addDays, dayKey, diffDays, mondayOf, type ISODate } from './dates';
 import { roundLoad } from './lifting';
 import { EXERCISES } from '../data/exercises';
@@ -83,7 +83,7 @@ function rep(n: number, row: Row): Row[] {
 /** He takes his accessory sets close to failure. */
 const NEAR_FAILURE = 9.5;
 
-function acc(exId: string, sets: number, reps: number, repsMax: number, opts: { group?: string; rpe?: number; note?: string; max?: boolean } = {}): PlannedExercise {
+function acc(exId: string, sets: number, reps: number, repsMax: number, opts: { group?: string; rpe?: number; note?: string; max?: boolean; schemes?: Scheme[] } = {}): PlannedExercise {
   const out: PlannedSet[] = Array.from({ length: sets }, (_, i) => ({
     id: `${exId}-${i}`,
     type: 'acc' as const,
@@ -92,7 +92,7 @@ function acc(exId: string, sets: number, reps: number, repsMax: number, opts: { 
     rpe: opts.rpe ?? NEAR_FAILURE,
     max: opts.max,
   }));
-  return { exId, group: opts.group, note: opts.note, sets: out };
+  return { exId, group: opts.group, note: opts.note, schemes: opts.schemes, sets: out };
 }
 
 /* His squat, bench and deadlift programming, as he dictated it: one list per week of the block. */
@@ -249,7 +249,7 @@ function friday(block: number, week: number): PlannedSession {
       barbell('squat', at(FRI_SQUAT, week), end),
       barbell('bench', at(FRI_BENCH, week), record ? `Vraie pause sur la poitrine. ${end}` : undefined),
       barbell('deadlift', at(FRI_DEADLIFT, week), end),
-      acc('benchHalteres2ct', 2, 8, 10, { note: 'Selon ta séance de SBD : passe-le si tu fatigues.' }),
+      acc('benchHalteres2ct', 4, 5, 5, { schemes: [{ sets: 4, reps: 5 }, { sets: 3, reps: 3 }], note: '4 × 5 ou 3 × 3, selon ta séance de SBD : tu choisis au moment de le faire.' }),
       acc('legCurl', 2, 10, 12),
     ],
   };

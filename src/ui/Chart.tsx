@@ -18,7 +18,7 @@ export interface SeriesDef {
   kind?: 'line' | 'dots' | 'bars';
 }
 
-function useWidth(): [React.RefObject<HTMLDivElement>, number] {
+export function useWidth(): [React.RefObject<HTMLDivElement>, number] {
   const ref = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(320);
   useEffect(() => {
@@ -31,7 +31,7 @@ function useWidth(): [React.RefObject<HTMLDivElement>, number] {
   return [ref, w];
 }
 
-function niceTicks(lo: number, hi: number, count = 3): number[] {
+export function niceTicks(lo: number, hi: number, count = 3): number[] {
   const span = Math.max(hi - lo, 1e-6);
   const raw = span / count;
   const mag = 10 ** Math.floor(Math.log10(raw));
