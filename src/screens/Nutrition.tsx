@@ -44,6 +44,15 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
   const change = (delta: number) => {
     updateProfile({ kcalPlan: [...p.kcalPlan.filter((s) => s.from <= today), { from: addDays(today, 1), kcal: target + delta, reason: delta > 0 ? 'Hausse du lundi' : 'Baisse du lundi' }] });
   };
+  const [setting, setSetting] = useState(false);
+  /** He decides his steps himself from his weight average: the new target starts today. */
+  const setTarget = (kcal: number) => {
+    setSetting(false);
+    const n = Math.round(kcal);
+    if (n < 1200 || n > 4500 || n === target) return;
+    updateProfile({ kcalPlan: [...p.kcalPlan.filter((s) => s.from < today), { from: today, kcal: n, reason: 'Ton choix' }] });
+  };
+  const readable = decision.kind === 'up' || decision.kind === 'down' || decision.kind === 'keep';
 
   return (
     <div className="screen">
@@ -88,12 +97,18 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
             );
           })}
         </ol>
-        <p className="muted">{decision.kind === 'plan' ? `${decision.why} Si ton poids monte trop vite, on ralentit.` : decision.why}</p>
+        <p className="muted">
+          {decision.kind === 'plan' ? `${decision.why} Si ton poids monte trop vite, on ralentit.` : readable ? decision.why : 'Tu décides tes paliers avec ta moyenne de poids, dans Progrès.'}
+        </p>
         {decision.kind === 'up' || decision.kind === 'down' ? (
           <button type="button" className="btn primary" onClick={() => change(decision.delta)}>
             {decision.delta > 0 ? 'Monter' : 'Baisser'} de {Math.abs(decision.delta)} kcal dès demain
           </button>
         ) : null}
+        <button type="button" className="btn ghost" onClick={() => setSetting(true)}>
+          Changer mon objectif
+        </button>
+        {setting ? <Keypad title="Ton objectif dès aujourd'hui" unit="kcal" initial={target} onCancel={() => setSetting(false)} onDone={setTarget} /> : null}
         {p.kcalCapUntil ? <p className="muted">Plafond de {int(plan[plan.length - 1]?.kcal ?? target)} kcal jusqu'au {dayMonth(p.kcalCapUntil)}, puis on regarde ta courbe.</p> : null}
       </section>
 
