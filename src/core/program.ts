@@ -48,9 +48,12 @@ function repsToFailure(pct: number): number {
   return FAILURE.length + (FAILURE[FAILURE.length - 1] - pct) / 2.7;
 }
 
+/** The chart's RPE for these reps at this % of the max, unrounded. */
+export const exactRpe = (reps: number, pct: number) => 10 - (repsToFailure(pct) - reps);
+
 /** The chart's RPE for these reps at this load, to the half point. */
 export function chartRpe(reps: number, pct: number): number {
-  return Math.min(10, Math.max(5, Math.round((10 - (repsToFailure(pct) - reps)) * 2) / 2));
+  return Math.min(10, Math.max(5, Math.round(exactRpe(reps, pct) * 2) / 2));
 }
 
 /** Every heavy set gets an RPE: his own, the one of the set it repeats at the same load, or the chart's. */

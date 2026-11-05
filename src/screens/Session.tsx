@@ -135,7 +135,7 @@ function Running({ s, onClose }: { s: SessionLog; onClose(): void }) {
 
     const exId = s.plan[st.ex].exId;
     const def = EXERCISES[exId];
-    const form = entry.rpe !== undefined ? readForm(s, st, entry.rpe, history) ?? undefined : undefined;
+    const form = readForm(s, st, entry, history, profile.tm) ?? undefined;
     const est = def?.lift ? e1rm(entry.load, entry.reps, entry.rpe) : null;
     let text: string | undefined;
     if (est && def?.lift) {

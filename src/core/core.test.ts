@@ -125,12 +125,17 @@ describe('program', () => {
   });
 
   it('follows a moved day', () => {
-    const moves = { '2026-11-02': 'tue', '2026-11-03': 'wed', '2026-11-04': 'off' } as const;
+    const moves = { '2026-11-02': 'tue', '2026-11-03': 'wed', '2026-11-04': 'off', '2026-11-05': 'fri', '2026-11-06': 'sat', '2026-11-07': 'sun', '2026-11-08': 'off' } as const;
     expect(locate('2026-11-02', '2026-11-02', moves)?.key).toBe('tue');
     expect(locate('2026-11-03', '2026-11-02', moves)?.key).toBe('wed');
     expect(locate('2026-11-04', '2026-11-02', moves)?.key).toBeNull();
-    expect(locate('2026-11-06', '2026-11-02', moves)?.key).toBe('fri');
+    expect(locate('2026-11-05', '2026-11-02', moves)).toMatchObject({ week: 1, key: 'fri' });
+    expect(locate('2026-11-06', '2026-11-02', moves)?.key).toBe('sat');
+    expect(locate('2026-11-07', '2026-11-02', moves)?.key).toBe('sun');
+    expect(locate('2026-11-08', '2026-11-02', moves)?.key).toBeNull();
+    expect(locate('2026-11-09', '2026-11-02', moves)).toMatchObject({ week: 2, key: 'mon' });
     expect(plannedFor('2026-11-03', { programStart: '2026-11-02', moves })?.title).toBe('Bench + Squat + Pecs + Triceps');
+    expect(plannedFor('2026-11-05', { programStart: '2026-11-02', moves })?.title).toBe('Squat + Bench + Deadlift');
   });
 
   it('uses only known exercises with unique set ids', () => {
@@ -364,10 +369,27 @@ describe('session flow', () => {
     const s = createSession(buildSession(1, 1, 'sun'), '2026-11-03', 's2', 1000);
     const steps = flowSteps(s.plan);
     const refStep = steps[1];
-    expect(readForm(s, refStep, 5, [])?.level).toBe('keep');
-    expect(readForm(s, refStep, 6, [])?.level).toBe('lighter');
-    expect(readForm(s, refStep, 7, [])?.level).toBe('light');
-    expect(readForm(s, steps[0], 9, [])).toBeNull();
+    const asked = { load: prefill(s, refStep, TM, []).load, reps: 1 };
+    expect(readForm(s, refStep, { ...asked, rpe: 5 }, [], TM)?.level).toBe('keep');
+    expect(readForm(s, refStep, { ...asked, rpe: 6 }, [], TM)?.level).toBe('lighter');
+    expect(readForm(s, refStep, { ...asked, rpe: 7 }, [], TM)?.level).toBe('light');
+    expect(readForm(s, steps[0], { ...asked, rpe: 9 }, [], TM)).toBeNull();
+  });
+
+  it('reads the form at the load he really lifted', () => {
+    const s = createSession(buildSession(1, 1, 'wed'), '2026-11-03', 's3', 1000);
+    const ref = flowSteps(s.plan).find((x) => s.plan[x.ex].sets[x.set].ref)!;
+    expect(prefill(s, ref, TM, []).load).toBe(107.5);
+    const read = (load: number, rpe: number, history: SessionLog[] = []) => readForm(s, ref, { load, reps: 3, rpe }, history, TM)?.level;
+    // His Tuesday 3 November: 110 kg for the 107.5 asked, at RPE 6 for a planned 5. That is the plan, not a bad day.
+    expect(read(110, 6)).toBe('keep');
+    expect(read(107.5, 6)).toBe('lighter');
+    expect(read(115, 8)).toBe('keep');
+    expect(read(100, 6)).toBe('light');
+    // Four past times at 110 kg and RPE 6: today at the asked 107.5 and RPE 6.5 is harder than usual.
+    const past = [0, 1, 2, 3].map((i) => logSet(createSession(buildSession(1, 1, 'wed'), '2026-10-20', `p${i}`, 500), ref, { load: 110, reps: 3, rpe: 6 }, 600 + i));
+    expect(read(110, 6, past)).toBe('keep');
+    expect(read(107.5, 6.5, past)).toBe('lighter');
   });
 
   it('builds a warm-up ladder under the first load', () => {

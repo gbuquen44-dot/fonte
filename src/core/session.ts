@@ -1,6 +1,7 @@
 import type { EquipKind, LiftKey, LoggedSet, PlannedExercise, PlannedSession, PlannedSet, PostCheck, SessionLog } from './types';
 import { EXERCISES } from '../data/exercises';
 import { detectPRs, floorLoad, roundLoad } from './lifting';
+import { exactRpe } from './program';
 import type { ISODate } from './dates';
 
 export interface Step {
@@ -240,17 +241,27 @@ function median(v: number[]): number {
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 }
 
-/** Reads the fixed reference load against the median of the last four times, or the plan. */
-export function readForm(s: SessionLog, st: Step, rpe: number, history: SessionLog[]): FormRead | null {
+/**
+ * Reads the fixed reference load against the median of the last four times, or the plan.
+ * Every RPE is first brought back, with the chart, to the load and reps asked today:
+ * a heavier bar than asked must not read as a bad day.
+ */
+export function readForm(s: SessionLog, st: Step, set: { load: number; reps: number; rpe?: number }, history: SessionLog[], tm: Record<LiftKey, number>): FormRead | null {
   const ps = plannedAt(s, st);
-  if (!ps.ref || ps.rpe === undefined) return null;
+  if (!ps.ref || ps.rpe === undefined || set.rpe === undefined) return null;
   const exId = s.plan[st.ex].exId;
+  const def = EXERCISES[exId];
+  const lift = def?.lift ?? def?.tm;
+  const max = lift ? tm[lift] : 0;
+  const asked = ps.pct !== undefined ? prefill(s, st, tm, history).load : 0;
+  const atAsked = (load: number, reps: number, rpe: number) =>
+    max > 0 && asked > 0 && load > 0 ? rpe - (exactRpe(reps, (load / max) * 100) - exactRpe(ps.reps, (asked / max) * 100)) : rpe;
   const past = history
     .flatMap((h) => h.sets.filter((x) => x.exId === exId && x.rpe !== undefined && h.plan.some((e) => e.sets.some((p) => p.id === x.plannedId && p.ref))))
-    .map((x) => x.rpe as number);
+    .map((x) => atAsked(x.load, x.reps, x.rpe as number));
   const useHistory = past.length >= 4;
   const reference = useHistory ? median(past.slice(-4)) : ps.rpe;
-  const delta = rpe - reference;
+  const delta = atAsked(set.load, set.reps, set.rpe) - reference;
   const basis = useHistory ? ('history' as const) : ('plan' as const);
   if (delta >= 2) {
     return { delta, level: 'light', multiplier: 0.875, basis, message: 'Barre lourde aujourd\'hui. Je te propose −12,5 % sur la suite, avec 3 reps en réserve.' };
