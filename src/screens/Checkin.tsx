@@ -28,6 +28,8 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
   const row = useMemo(rowHeight, []);
   const [step, setStep] = useState(0);
   const [weight, setWeight] = useState(today?.weight ?? lastWeight);
+  /** The wheel starts on his last weight: without a weigh-in, saving it would invent one. */
+  const [weighed, setWeighed] = useState(!(today?.checkinAt && today.weight === undefined));
   const [sleepH, setSleep] = useState(today?.sleepH ?? lastSleep);
   const [sleepQ, setQ] = useState(today?.sleepQ);
   const [recovery, setRecovery] = useState(today?.recovery);
@@ -39,7 +41,7 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
     set(v);
     setTimeout(next, 170);
   };
-  const answers = { weight, sleepH, sleepQ, dayFeel, stress, recovery, tags };
+  const answers = { weight: weighed ? weight : undefined, sleepH, sleepQ, dayFeel, stress, recovery, tags };
   const latest = useRef({ answers, step });
   latest.current = { answers, step };
   const finished = useRef(false);
@@ -72,7 +74,14 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
             <p className="muted">Fais tourner les roues, c'est déjà prérempli.</p>
             <div className="wheels">
               <Wheel label="Sommeil" values={SLEEP} value={sleepH} onChange={setSleep} format={hours} row={row} />
-              <Wheel label="Poids (kg)" values={WEIGHTS} value={weight} onChange={setWeight} format={fr1} row={row} />
+              <div className="wheel-off" data-off={weighed ? undefined : ''} aria-disabled={!weighed}>
+                <Wheel label="Poids (kg)" values={WEIGHTS} value={weight} onChange={setWeight} format={fr1} row={row} />
+              </div>
+            </div>
+            <div className="tags weigh-skip">
+              <button type="button" aria-pressed={!weighed} className={weighed ? '' : 'on'} onClick={() => setWeighed((w) => !w)}>
+                Pas pesé ce matin
+              </button>
             </div>
             <button type="button" className="btn primary big" onClick={next}>
               Continuer

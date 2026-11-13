@@ -1320,6 +1320,19 @@ button.card:active {
   gap: 10px;
 }
 
+.wheel-off {
+  transition: opacity 0.16s;
+}
+
+.wheel-off[data-off] {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.weigh-skip {
+  justify-content: flex-end;
+}
+
 .wheel-label {
   display: block;
   text-align: center;
