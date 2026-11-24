@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyBrain, blockMinutes, byProject, clock, formatMinutes, runningBlock, setProjectNames, PROJECT_LABEL, todayList, workMinutes, type BrainOut, type Note, type Todo } from './head';
+import { applyBrain, normalizeNote, blockMinutes, byProject, clock, formatMinutes, runningBlock, setProjectNames, PROJECT_LABEL, todayList, workMinutes, type BrainOut, type Note, type Todo } from './head';
 
 const note: Note = { id: 'n1', text: 'x', at: Date.parse('2026-11-25T11:20:00'), date: '2026-11-25', source: 'app', status: 'pending', updatedAt: 0 };
 const empty: BrainOut = { resume: '', taches: [], idees: [], forme: { energie: null, humeur: null, concentration: null }, travail: [], faits: [], terminees: [] };
@@ -80,5 +80,17 @@ describe('Lock-in', () => {
     setProjectNames({ biz: { label: 'Ma boîte', short: 'Boîte' } });
     expect(PROJECT_LABEL.biz).toBe('Ma boîte');
     setProjectNames({ biz: { label: 'Business' } });
+  });
+});
+
+describe('notes from the shortcut', () => {
+  it('reads the ISO time and keeps the note waiting', () => {
+    const n = normalizeNote({ id: '2026-11-25-r071502', text: ' Idée vidéo ', date: '2026-11-25', iso: '2026-11-25T07:15:02+01:00', source: 'raccourci', status: 'pending' }, 'x');
+    expect(n.at).toBe(Date.parse('2026-11-25T06:15:02Z'));
+    expect(n).toMatchObject({ id: '2026-11-25-r071502', text: 'Idée vidéo', status: 'pending', source: 'raccourci', updatedAt: n.at });
+  });
+
+  it('closes an empty dictation', () => {
+    expect(normalizeNote({ text: '', iso: '2026-11-25T07:15:02+01:00' }, 'f').status).toBe('done');
   });
 });

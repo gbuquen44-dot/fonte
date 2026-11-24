@@ -166,6 +166,12 @@ export function Settings({ open, onClose }: { open: boolean; onClose(): void }) 
 
           <ClaudeKey />
 
+          <h3>Dicter sans ouvrir l'appli</h3>
+          <p className="muted">Le raccourci « Note Lock-in » : tu parles, la note part dans ta sauvegarde, et je la range à ta prochaine ouverture. Ajoute-le, colle ton jeton GitHub quand il le demande, puis mets-le sur ton écran d'accueil ou sur le bouton Action.</p>
+          <a className="btn ghost" href="./Note%20Lock-in.shortcut" download>
+            Ajouter le raccourci
+          </a>
+
           <h3>Ce que Claude doit savoir de toi</h3>
           <p className="muted">Envoyé avec chaque note pour qu'il range bien : qui tu es, tes buts, tes projets.</p>
           <textarea rows={4} defaultValue={p.about ?? ''} onBlur={(e) => e.target.value !== (p.about ?? '') && updateProfile({ about: e.target.value.trim() })} aria-label="Ce que Claude doit savoir de toi" />

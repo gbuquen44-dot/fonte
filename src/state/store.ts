@@ -3,7 +3,7 @@ import type { DayLog, PlannedSession, Profile, SessionLog } from '../core/types'
 import { todayISO, type ISODate } from '../core/dates';
 import { createSession } from '../core/session';
 import { healthPatch, parseHealthExport } from '../core/health';
-import { applyBrain, runningBlock, type Note, type Project, type Todo, type WorkDay } from '../core/head';
+import { applyBrain, normalizeNote, runningBlock, type Note, type Project, type Todo, type WorkDay } from '../core/head';
 import { dispatch, GhError, listFiles, readText, removeFile, writeText, type GhConfig, type GhFile } from './github';
 
 export interface AppData {
@@ -348,7 +348,7 @@ export async function pull(force = false) {
       const id = name.replace(/\.json$/, '');
       if (col === 'days') mergeDoc('days', id, days, parsed as DayLog);
       else if (col === 'sessions') mergeDoc('sessions', id, sessions, parsed as SessionLog);
-      else if (col === 'notes') mergeDoc('notes', id, notes, parsed as Note);
+      else if (col === 'notes') mergeDoc('notes', id, notes, normalizeNote(parsed as Partial<Note>, id));
       else if (col === 'todos') mergeDoc('todos', id, todos, parsed as Todo);
       else if (col === 'work') mergeDoc('work', id, work, parsed as WorkDay);
       else if (!dirty.has('profile/main') && (!profile || !profile.linked || (parsed.updatedAt ?? 0) > (profile.updatedAt ?? 0))) profile = { ...(parsed as Profile), linked: true };

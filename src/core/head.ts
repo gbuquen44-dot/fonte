@@ -216,3 +216,23 @@ export function clock(ms: number): string {
   const ss = String(sec).padStart(2, '0');
   return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
+
+/** A note dropped by the iPhone shortcut carries an ISO time and no number: make it a full note. */
+export function normalizeNote(raw: Partial<Note> & { iso?: string }, id: string): Note {
+  const at = typeof raw.at === 'number' ? raw.at : raw.iso ? Date.parse(raw.iso) || Date.now() : Date.now();
+  const text = String(raw.text ?? '').trim();
+  const date = raw.date && /^\d{4}-\d{2}-\d{2}$/.test(raw.date) ? raw.date : new Date(at).toISOString().slice(0, 10);
+  const base: Note = {
+    id: raw.id || id,
+    text,
+    at,
+    date,
+    source: raw.source === 'raccourci' ? 'raccourci' : 'app',
+    status: raw.status === 'done' || raw.status === 'error' ? raw.status : 'pending',
+    error: raw.error,
+    summary: raw.summary,
+    made: raw.made,
+    updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : at,
+  };
+  return text ? base : { ...base, status: 'done', summary: 'Note vide.' };
+}
