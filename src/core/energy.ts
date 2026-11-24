@@ -143,8 +143,8 @@ export interface Maintenance {
 const RHO = 7700;
 
 /** Olive oil he eats every day and does not log in Yazio. */
-export const UNLOGGED_FAT = 10;
-const UNLOGGED_KCAL = 90;
+export const UNLOGGED_FAT = 5;
+const UNLOGGED_KCAL = 45;
 
 export function estimateMaintenance(p: Profile, days: Record<ISODate, DayLog>, end: ISODate): Maintenance {
   const fallback: Maintenance = { value: p.maintenance, low: p.maintenanceLow, high: p.maintenanceHigh, source: 'estimate' };
