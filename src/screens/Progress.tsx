@@ -5,8 +5,11 @@ import { weighIns } from '../core/energy';
 import { currentE1rm, e1rmSeries, LIFT_LABEL, LIFTS, liftTrend, rolling3 } from '../core/lifting';
 import { loggedVolume } from '../core/volume';
 import { rollingMean } from '../core/weight';
-import type { LiftKey, PRBadge } from '../core/types';
-import { TimeChart, TotalRoad, VolumeBars, type Pt } from '../ui/Chart';
+import type { LiftKey, PRBadge, SessionLog } from '../core/types';
+import { TimeChart, VolumeBars, type Pt } from '../ui/Chart';
+import { dayPlan, MUSCU_KEYS, MUSCU_START } from '../core/program';
+import { bestSets, mainOf, PRIORITY, progressOf, type ExerciseProgress } from '../core/progress';
+import { EXERCISES, MUSCLE_LABEL } from '../data/exercises';
 import { fr1, hours, int, kg, Segmented } from '../ui/controls';
 import { IconChevron } from '../ui/icons';
 import { useStored, useToday } from '../ui/hooks';
@@ -35,9 +38,19 @@ export function Progress() {
     });
 
   const weights = useMemo(() => weighIns(data.days), [data.days]);
-  const estimated = LIFTS.reduce((a, l) => a + currentE1rm(sessions, l, p.tm[l]), 0);
-  const startTotal = LIFTS.reduce((a, l) => a + p.tm[l], 0);
-  const goalTotal = LIFTS.reduce((a, l) => a + p.goal[l], 0);
+  const [scope, setScope] = useState<'prio' | 'all'>('prio');
+  const [open, setOpen] = useState<string | null>(null);
+  const exercises = useMemo(() => {
+    const ids = [...new Set(MUSCU_KEYS.flatMap((k) => dayPlan(k, p.muscu).slots.map((x) => x.exId)))];
+    const rank = (id: string) => {
+      const i = PRIORITY.indexOf(mainOf(id) ?? 'abdos');
+      return i < 0 ? PRIORITY.length : i;
+    };
+    return ids.sort((a, b) => rank(a) - rank(b)).map((id) => progressOf(sessions, id, MUSCU_START));
+  }, [sessions, p.muscu]);
+  const shown = scope === 'prio' ? exercises.filter((e) => PRIORITY.includes(mainOf(e.exId) ?? 'abdos')) : exercises;
+  const ups = exercises.filter((e) => e.move === 'up').length;
+  const tracked = exercises.filter((e) => e.move !== 'new').length;
   const liftSeries = LIFTS.map((l) => ({
     id: l,
     label: LIFT_LABEL[l],
@@ -57,47 +70,54 @@ export function Progress() {
     [sessions],
   );
   const sleep = series('sleepH');
-  const nextGoal = p.milestones.find((m) => m.total > estimated);
 
   return (
     <div className="screen">
       <header className="head">
         <div>
-          <p>Squat + bench + deadlift</p>
+          <p>Phase muscu, depuis le 23 novembre</p>
           <h1>Progrès</h1>
         </div>
       </header>
 
-      <section className="card total">
-        <p className="total-value num">
-          {int(estimated)} <small>kg</small>
-        </p>
+      <section className="card">
+        <h2>Tes exercices</h2>
         <p className="muted">
-          Ton total estimé. {nextGoal ? `Prochain cap : ${int(nextGoal.total)} kg (${nextGoal.label.toLowerCase()}).` : ''} Objectif {int(goalTotal)} kg.
+          {tracked ? `${ups} sur ${tracked} en progrès depuis le début de la phase. ` : ''}Ta meilleure série de la dernière séance, comparée à la première.
         </p>
-        <TotalRoad current={estimated} start={Math.min(startTotal, estimated) - 20} milestones={p.milestones} />
+        <div className="prog-scope">
+          <Segmented<'prio' | 'all'> label="Exercices affichés" value={scope} onPick={setScope} options={[{ value: 'prio', label: 'Tes priorités' }, { value: 'all', label: 'Tous' }]} />
+        </div>
+        <ul className="prog-list">
+          {shown.map((e) => (
+            <ExerciseRow key={e.exId} e={e} open={open === e.exId} onToggle={() => setOpen(open === e.exId ? null : e.exId)} sessions={sessions} today={today} />
+          ))}
+        </ul>
       </section>
 
+      <section className="card">
+        <h2>Séries par muscle</h2>
+        <p className="muted">Sur 7 jours. La zone claire est celle où un muscle progresse le mieux.</p>
+        <VolumeBars volume={volume} />
+      </section>
+
+      <Segmented<number> label="Période" value={range} onPick={setRange} options={[{ value: 30, label: '30 jours' }, { value: 90, label: '90 jours' }, { value: 365, label: '1 an' }]} />
+
+      <h2 className="prog-sub">Squat, bench, deadlift</h2>
       <ul className="lifts">
         {LIFTS.map((l) => {
           const t = liftTrend(sessions, l);
           const now = currentE1rm(sessions, l, p.tm[l]);
-          const ratio = Math.min(1, now / p.goal[l]);
           return (
             <li key={l} className="card" style={{ '--c': COLORS[l] } as React.CSSProperties}>
               <span>{LIFT_LABEL[l]}</span>
               <b className="num">{kg(Math.round(now * 2) / 2)}</b>
-              <small className="num">objectif {kg(p.goal[l])}</small>
-              <i>
-                <em style={{ transform: `scaleX(${ratio})` }} />
-              </i>
+              <small>max estimé</small>
               {t?.verdict === 'probable' ? <small className="up">en progrès</small> : null}
             </li>
           );
         })}
       </ul>
-
-      <Segmented<number> label="Période" value={range} onPick={setRange} options={[{ value: 30, label: '30 jours' }, { value: 90, label: '90 jours' }, { value: 365, label: '1 an' }]} />
 
       <section className="card">
         <h2>Force</h2>
@@ -154,11 +174,6 @@ export function Progress() {
         <TimeChart series={[{ id: 'steps', label: 'Pas', color: 'rgba(255,196,107,.55)', points: series('steps'), kind: 'bars' }]} from={from} to={today} floor={0} format={(n) => int(n)} reference={{ y: 8000, label: '8 000' }} empty="Tes pas apparaissent dès que Yazio les envoie." />
       </section>
 
-      <section className="card">
-        <h2>Séries par muscle</h2>
-        <p className="muted">Sur 7 jours. La zone claire est celle où un muscle progresse le mieux.</p>
-        <VolumeBars volume={volume} />
-      </section>
 
       <section className="card">
         <h2>Tes records</h2>
@@ -182,5 +197,39 @@ export function Progress() {
         )}
       </section>
     </div>
+  );
+}
+
+function ExerciseRow({ e, open, onToggle, sessions, today }: { e: ExerciseProgress; open: boolean; onToggle(): void; sessions: SessionLog[]; today: ISODate }) {
+  const name = EXERCISES[e.exId]?.name ?? e.exId;
+  const muscle = mainOf(e.exId);
+  const points = useMemo(() => (open ? bestSets(sessions, e.exId).map((b) => ({ date: b.date, y: b.load })) : []), [open, sessions, e.exId]);
+  return (
+    <li className={`prog-row${open ? ' open' : ''}`}>
+      <button type="button" aria-expanded={open} onClick={onToggle}>
+        <span className="prog-name">
+          <strong>{name}</strong>
+          <small>
+            {muscle ? MUSCLE_LABEL[muscle] : ''}
+            {e.last ? (e.last.load ? ` · ${kg(e.last.load)} kg × ${e.last.reps}` : ` · ${e.last.reps} reps`) : ''}
+          </small>
+        </span>
+        <span className="prog-delta num" data-move={e.move}>
+          {e.delta}
+        </span>
+      </button>
+      {open ? (
+        <div className="prog-chart">
+          <TimeChart
+            series={[{ id: e.exId, label: 'Charge de ta meilleure série', color: 'var(--mint)', points }]}
+            from={addDays(today, -120)}
+            to={today}
+            height={140}
+            format={(n) => `${kg(n)} kg`}
+            empty="La courbe démarre à ta première série."
+          />
+        </div>
+      ) : null}
+    </li>
   );
 }

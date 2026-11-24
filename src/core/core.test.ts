@@ -7,6 +7,7 @@ import { attempts, detectPRs, e1rm, platesPerSide, roundLoad, rolling3 } from '.
 import { buildSession, buildWeek, chartRpe, dateOfSession, estimateMinutes, hardSets, locate, MUSCU_START, pctForRepsToFailure, plannedFor, planRows, SESSION_KEYS, weekDates } from './program';
 import { EXERCISES } from '../data/exercises';
 import { linkedToNext, moveSlot, normalizeGroups, pickable, toggleSuperset } from './edit';
+import { bestSets, progressOf } from './progress';
 import {
   addSet,
   createSession,
@@ -876,5 +877,22 @@ describe('editing the muscle-building days', () => {
 
   it('never offers calves', () => {
     expect(pickable().some((e) => e.id === 'mollets')).toBe(false);
+  });
+});
+
+describe('progress in the muscle phase', () => {
+  const done = (date: string, sets: [string, number, number][]) =>
+    ({ ...createSession(buildSession(0, 2, 'tue'), date, date, Date.parse(date)), status: 'done' as const, sets: sets.map(([exId, load, reps], i) => ({ plannedId: `${exId}-${i}`, exId, type: 'acc' as const, load, reps, at: i })) });
+
+  it('compares his last best set with his first one', () => {
+    const s = [done('2026-11-24', [['pecFly', 50, 7], ['pecFly', 50, 6]]), done('2026-12-01', [['pecFly', 50, 9]]), done('2026-12-08', [['pecFly', 52.5, 7]])];
+    expect(progressOf(s, 'pecFly', '2026-11-23')).toMatchObject({ move: 'up', delta: '+2,5 kg' });
+    expect(progressOf(s.slice(0, 2), 'pecFly', '2026-11-23')).toMatchObject({ move: 'up', delta: '+2 reps' });
+    expect(progressOf(s.slice(0, 1), 'pecFly', '2026-11-23').move).toBe('new');
+    expect(progressOf([done('2026-11-24', [['pecFly', 50, 8]]), done('2026-12-01', [['pecFly', 50, 7]])], 'pecFly', '2026-11-23')).toMatchObject({ move: 'down', delta: '−1 rep' });
+  });
+
+  it('leaves out sets before the phase', () => {
+    expect(bestSets([done('2026-11-18', [['pecFly', 50, 7]])], 'pecFly', '2026-11-23')).toHaveLength(0);
   });
 });
