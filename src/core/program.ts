@@ -332,8 +332,8 @@ export const DEFAULT_MUSCU: Record<'tue' | 'wed' | 'fri' | 'sat' | 'sun', DayPla
       slot('benchHalteres', 3, 6, 9),
       slot('dmMachine', 3, 6, 9),
       slot('elevMachine', 3, 6, 9, { group: 'a', rpe: FAIL }),
-      slot('avantEpaule', 2, 6, 9, { group: 'a' }),
-      slot('pecPress', 2, 6, 9),
+      slot('avantEpaule', 3, 6, 9, { group: 'a' }),
+      slot('pecPress', 3, 6, 9),
       slot('pecFly', 3, 6, 9),
       slot('curlIncline', 3, 6, 9),
       slot('curlPoulie', 3, 6, 9, { group: 'b', note: 'Prise serrée : mains à la largeur des hanches.' }),
@@ -408,18 +408,19 @@ export function dayPlan(key: SessionKey, muscu?: Profile['muscu']): DayPlan {
   return muscu?.[key] ?? DEFAULT_MUSCU[isMuscuKey(key) ? key : 'tue'];
 }
 
-/** The first week ends his deload: one set less everywhere, two or three reps in reserve. */
+/** The first week: every set, one or two reps short of failure, except the lateral raises. */
 const LIGHT_WEEK = 1;
+const LIGHT_RPE = 8.5;
 
 function muscuSession(week: number, key: SessionKey, muscu?: Profile['muscu'], only?: Slot[]): PlannedSession {
   const plan = dayPlan(key, muscu);
   const light = week === LIGHT_WEEK;
   const exercises = (only ?? plan.slots).map((x) =>
-    acc(x.exId, light ? Math.max(1, x.sets - 1) : x.sets, x.reps, x.repsMax, {
+    acc(x.exId, x.sets, x.reps, x.repsMax, {
       group: x.group,
       note: x.note,
       max: x.max,
-      rpe: light ? Math.min(x.rpe ?? NEAR_FAILURE, 7.5) : x.rpe,
+      rpe: light && x.rpe !== FAIL ? Math.min(x.rpe ?? NEAR_FAILURE, LIGHT_RPE) : x.rpe,
     }),
   );
   return {
@@ -427,7 +428,7 @@ function muscuSession(week: number, key: SessionKey, muscu?: Profile['muscu'], o
     block: 0,
     week,
     title: plan.title,
-    subtitle: light ? `Semaine légère : une série de moins, 2 à 3 reps en réserve. ${plan.subtitle}` : plan.subtitle,
+    subtitle: light ? `Semaine de reprise : toutes les séries, à 1 ou 2 reps de l'échec, latérales à l'échec. ${plan.subtitle}` : plan.subtitle,
     exercises,
   };
 }

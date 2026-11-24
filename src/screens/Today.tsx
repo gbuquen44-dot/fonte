@@ -146,7 +146,7 @@ function SessionCard({ plan, date, soon, block, onStart }: { plan: PlannedSessio
   const rest = plan.exercises.length - list.length;
   return (
     <section className="card hero">
-      <p className="hero-tag">{soon ? `${soon === 1 ? 'Demain' : longDate(date)}` : `Séance du jour`}{block === 0 ? ` · Semaine ${plan.week}${plan.week === 1 ? ', légère' : ''}` : ` · Bloc ${block}, semaine ${plan.week}`}</p>
+      <p className="hero-tag">{soon ? `${soon === 1 ? 'Demain' : longDate(date)}` : `Séance du jour`}{block === 0 ? ` · Semaine ${plan.week}${plan.week === 1 ? ', reprise' : ''}` : ` · Bloc ${block}, semaine ${plan.week}`}</p>
       <h2>{plan.title}</h2>
       <p className="hero-sub num">
         {plan.exercises.length} {plural(plan.exercises.length, 'exercice')} · environ {estimateMinutes(plan)} min
