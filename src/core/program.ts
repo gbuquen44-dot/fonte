@@ -1,4 +1,4 @@
-import type { LiftKey, PlannedExercise, PlannedSession, PlannedSet, Profile, Scheme, SessionKey, SetType } from './types';
+import type { DayPlan, LiftKey, PlannedExercise, PlannedSession, PlannedSet, Profile, Scheme, SessionKey, SetType, Slot } from './types';
 import { addDays, dayKey, diffDays, mondayOf, type ISODate } from './dates';
 import { roundLoad } from './lifting';
 import { EXERCISES } from '../data/exercises';
@@ -19,7 +19,7 @@ export function locate(date: ISODate, programStart: ISODate, moves?: Profile['mo
     const week = Math.floor(diffDays(date, MUSCU_START) / 7) + 1;
     const moved = moves?.[date];
     const k = dayKey(date);
-    const key = moved ? (moved === 'off' || !MUSCU[moved] ? null : moved) : k === 'mon' || k === 'thu' ? null : k;
+    const key = moved ? (moved === 'off' || !isMuscuKey(moved) ? null : moved) : k === 'mon' || k === 'thu' ? null : k;
     return { week, block: 0, blockWeek: week, key };
   }
   const d = diffDays(date, mondayOf(programStart));
@@ -317,126 +317,123 @@ function sunday(block: number, week: number): PlannedSession {
 
 const SESSIONS: Record<SessionKey, (block: number, week: number) => PlannedSession> = { mon: monday, tue: tuesday, wed: wednesday, fri: friday, sat: saturday, sun: sunday };
 
-/* The muscle-building program he built on 24 November 2026: 6 to 9 reps, more load as soon as he reaches 10. */
-
-type Draft = Omit<PlannedSession, 'block' | 'week'>;
+/* The muscle-building program he built on 24 November 2026: 6 to 9 reps, more load as soon as he reaches 10. He can edit it in the app. */
 
 /** He goes to failure on lateral raises. */
-const FAIL = 10;
+export const FAIL = 10;
 
-function devant(): Draft {
-  return {
-    key: 'tue',
+const slot = (exId: string, sets: number, reps: number, repsMax: number, opts: Partial<Slot> = {}): Slot => ({ exId, sets, reps, repsMax, ...opts });
+
+export const DEFAULT_MUSCU: Record<'tue' | 'wed' | 'fri' | 'sat' | 'sun', DayPlan> = {
+  tue: {
     title: 'Devant',
     subtitle: 'Pecs, épaules, biceps, rappel quadri',
-    exercises: [
-      acc('benchHalteres', 3, 6, 9),
-      acc('dmMachine', 3, 6, 9),
-      acc('elevMachine', 3, 6, 9, { group: 'a', rpe: FAIL }),
-      acc('avantEpaule', 2, 6, 9, { group: 'a' }),
-      acc('pecPress', 2, 6, 9),
-      acc('pecFly', 3, 6, 9),
-      acc('curlIncline', 3, 6, 9),
-      acc('curlPoulie', 3, 6, 9, { group: 'b', note: 'Prise serrée : mains à la largeur des hanches.' }),
-      acc('abdosPoulie', 3, 10, 15, { group: 'b' }),
-      acc('legExt', 3, 6, 9, { note: 'Rappel quadri.' }),
+    slots: [
+      slot('benchHalteres', 3, 6, 9),
+      slot('dmMachine', 3, 6, 9),
+      slot('elevMachine', 3, 6, 9, { group: 'a', rpe: FAIL }),
+      slot('avantEpaule', 2, 6, 9, { group: 'a' }),
+      slot('pecPress', 2, 6, 9),
+      slot('pecFly', 3, 6, 9),
+      slot('curlIncline', 3, 6, 9),
+      slot('curlPoulie', 3, 6, 9, { group: 'b', note: 'Prise serrée : mains à la largeur des hanches.' }),
+      slot('abdosPoulie', 3, 10, 15, { group: 'b' }),
+      slot('legExt', 3, 6, 9, { note: 'Rappel quadri.' }),
     ],
-  };
-}
-
-function derriere(): Draft {
-  return {
-    key: 'wed',
+  },
+  wed: {
     title: 'Derrière',
     subtitle: 'Dos, triceps, arrière d\'épaule, rappel ischios',
-    exercises: [
-      acc('tirageNeutre', 2, 6, 9),
-      acc('dipsMachine', 2, 6, 9),
-      acc('tirageHNeutre', 2, 6, 9, { note: 'Prise serrée.' }),
-      acc('extOverhead', 2, 6, 9, { note: 'Avec la barre en V.' }),
-      acc('extUni', 2, 6, 9),
-      acc('facePull', 2, 6, 9, { group: 'a' }),
-      acc('elevHalteres', 2, 6, 9, { group: 'a', rpe: FAIL }),
-      acc('legCurlAllonge', 3, 6, 9, { note: 'Rappel ischios.' }),
-      acc('lombaires', 3, 10, 15),
+    slots: [
+      slot('tirageNeutre', 2, 6, 9),
+      slot('dipsMachine', 2, 6, 9),
+      slot('tirageHNeutre', 2, 6, 9, { note: 'Prise serrée.' }),
+      slot('extOverhead', 2, 6, 9, { note: 'Avec la barre en V.' }),
+      slot('extUni', 2, 6, 9),
+      slot('facePull', 2, 6, 9, { group: 'a' }),
+      slot('elevHalteres', 2, 6, 9, { group: 'a', rpe: FAIL }),
+      slot('legCurlAllonge', 3, 6, 9, { note: 'Rappel ischios.' }),
+      slot('lombaires', 3, 10, 15),
     ],
-  };
-}
-
-function jambes(): Draft {
-  return {
-    key: 'fri',
+  },
+  fri: {
     title: 'Jambes',
     subtitle: 'Quadriceps d\'abord, ischios, fessiers',
-    exercises: [
-      acc('squat', 4, 6, 8, { rpe: 8 }),
-      acc('pendulum', 3, 6, 9),
-      acc('rdl', 3, 6, 9, { rpe: 8.5 }),
-      acc('legExt', 3, 6, 9),
-      acc('abduction', 3, 10, 15),
-      acc('abdos', 3, 10, 15),
+    slots: [
+      slot('squat', 4, 6, 8, { rpe: 8 }),
+      slot('pendulum', 3, 6, 9),
+      slot('rdl', 3, 6, 9, { rpe: 8.5 }),
+      slot('legExt', 3, 6, 9),
+      slot('abduction', 3, 10, 15),
+      slot('abdos', 3, 10, 15),
     ],
-  };
-}
-
-function pushA(): Draft {
-  return {
-    key: 'sat',
+  },
+  sat: {
     title: 'Push A',
     subtitle: 'Pecs, épaules, triceps',
-    exercises: [
-      acc('bench', 4, 6, 9, { note: 'On s\'arrache.' }),
-      acc('dmHalteres', 3, 6, 9),
-      acc('smithIncline', 3, 6, 9),
-      acc('pecFly', 2, 6, 9),
-      acc('extCorde', 2, 6, 9, { group: 'a' }),
-      acc('oiseau', 2, 6, 9, { group: 'a' }),
-      acc('elevMachine', 3, 6, 9, { group: 'b', rpe: FAIL }),
-      acc('avantEpaule', 2, 6, 9, { group: 'b' }),
-      acc('barreFront', 2, 6, 9),
+    slots: [
+      slot('bench', 4, 6, 9, { note: 'On s\'arrache.' }),
+      slot('dmHalteres', 3, 6, 9),
+      slot('smithIncline', 3, 6, 9),
+      slot('pecFly', 2, 6, 9),
+      slot('extCorde', 2, 6, 9, { group: 'a' }),
+      slot('oiseau', 2, 6, 9, { group: 'a' }),
+      slot('elevMachine', 3, 6, 9, { group: 'b', rpe: FAIL }),
+      slot('avantEpaule', 2, 6, 9, { group: 'b' }),
+      slot('barreFront', 2, 6, 9),
     ],
-  };
-}
-
-function pullA(): Draft {
-  return {
-    key: 'sun',
+  },
+  sun: {
     title: 'Pull A',
     subtitle: 'Dos, biceps',
-    exercises: [
-      acc('tractions', 2, 6, 6, { max: true, note: 'Une série d\'échauffement avant.' }),
-      acc('tirageLarge', 2, 6, 9),
-      acc('tirageHUni', 2, 6, 9),
-      acc('marteau', 2, 6, 9, { group: 'a' }),
-      acc('elevHalteres', 2, 6, 9, { group: 'a', rpe: FAIL, note: 'Unilatérale, main sur un banc.' }),
-      acc('bayesian', 2, 6, 9),
-      acc('tirageHaut', 2, 6, 9),
-      acc('pupitre', 2, 6, 9),
+    slots: [
+      slot('tractions', 2, 6, 6, { max: true, note: 'Une série d\'échauffement avant.' }),
+      slot('tirageLarge', 2, 6, 9),
+      slot('tirageHUni', 2, 6, 9),
+      slot('marteau', 2, 6, 9, { group: 'a' }),
+      slot('elevHalteres', 2, 6, 9, { group: 'a', rpe: FAIL, note: 'Unilatérale, main sur un banc.' }),
+      slot('bayesian', 2, 6, 9),
+      slot('tirageHaut', 2, 6, 9),
+      slot('pupitre', 2, 6, 9),
     ],
-  };
-}
-
-const MUSCU: Partial<Record<SessionKey, () => Draft>> = { tue: devant, wed: derriere, fri: jambes, sat: pushA, sun: pullA };
+  },
+};
 
 export const MUSCU_KEYS: SessionKey[] = ['tue', 'wed', 'fri', 'sat', 'sun'];
+
+const isMuscuKey = (k: SessionKey): k is keyof typeof DEFAULT_MUSCU => k in DEFAULT_MUSCU;
+
+/** The day as he last edited it, else as he built it. */
+export function dayPlan(key: SessionKey, muscu?: Profile['muscu']): DayPlan {
+  return muscu?.[key] ?? DEFAULT_MUSCU[isMuscuKey(key) ? key : 'tue'];
+}
 
 /** The first week ends his deload: one set less everywhere, two or three reps in reserve. */
 const LIGHT_WEEK = 1;
 
-function muscuSession(week: number, key: SessionKey): PlannedSession {
-  const draft = (MUSCU[key] ?? devant)();
-  if (week !== LIGHT_WEEK) return { ...draft, block: 0, week };
+function muscuSession(week: number, key: SessionKey, muscu?: Profile['muscu'], only?: Slot[]): PlannedSession {
+  const plan = dayPlan(key, muscu);
+  const light = week === LIGHT_WEEK;
+  const exercises = (only ?? plan.slots).map((x) =>
+    acc(x.exId, light ? Math.max(1, x.sets - 1) : x.sets, x.reps, x.repsMax, {
+      group: x.group,
+      note: x.note,
+      max: x.max,
+      rpe: light ? Math.min(x.rpe ?? NEAR_FAILURE, 7.5) : x.rpe,
+    }),
+  );
   return {
-    ...draft,
+    key,
     block: 0,
     week,
-    subtitle: `Semaine légère : une série de moins, 2 à 3 reps en réserve. ${draft.subtitle}`,
-    exercises: draft.exercises.map((e) => ({ ...e, sets: e.sets.slice(0, Math.max(1, e.sets.length - 1)).map((x) => ({ ...x, rpe: Math.min(x.rpe ?? 8, 7.5) })) })),
+    title: plan.title,
+    subtitle: light ? `Semaine légère : une série de moins, 2 à 3 reps en réserve. ${plan.subtitle}` : plan.subtitle,
+    exercises,
   };
 }
 
-export function buildSession(block: number, week: number, key: SessionKey): PlannedSession {
-  return block === 0 ? muscuSession(week, key) : SESSIONS[key](block, week);
+export function buildSession(block: number, week: number, key: SessionKey, muscu?: Profile['muscu'], only?: Slot[]): PlannedSession {
+  return block === 0 ? muscuSession(week, key, muscu, only) : SESSIONS[key](block, week);
 }
 
 export const SESSION_KEYS: SessionKey[] = ['mon', 'tue', 'wed', 'fri', 'sat', 'sun'];
@@ -450,9 +447,9 @@ export function hardSets(s: PlannedSession): number {
   return s.exercises.reduce((a, e) => a + e.sets.filter((x) => x.type !== 'ramp').length, 0);
 }
 
-export function plannedFor(date: ISODate, p: Pick<Profile, 'programStart' | 'moves'>): PlannedSession | null {
+export function plannedFor(date: ISODate, p: Pick<Profile, 'programStart' | 'moves' | 'muscu' | 'muscuDays'>): PlannedSession | null {
   const loc = locate(date, p.programStart, p.moves);
-  return loc?.key ? buildSession(loc.block, loc.blockWeek, loc.key) : null;
+  return loc?.key ? buildSession(loc.block, loc.blockWeek, loc.key, p.muscu, p.muscuDays?.[date]) : null;
 }
 
 export interface PlanRow {

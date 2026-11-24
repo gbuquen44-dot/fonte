@@ -1,14 +1,14 @@
 import React, { useMemo } from 'react';
 import { activeSession, beginSession, doneSessions, isStale, useApp } from '../state/store';
-import { addDays, DAY_LABEL, dayKey, diffDays, longDate, mondayOf, shortDate, type ISODate } from '../core/dates';
+import { addDays, DAY_LABEL, dayKey, diffDays, longDate, shortDate, type ISODate } from '../core/dates';
 import { estimateMinutes, locate, plannedFor } from '../core/program';
 import { macrosFor, targetKcal, weighIns } from '../core/energy';
 import { tipOfDay } from '../core/rules';
 import { plural } from '../core/labels';
 import type { PlannedSession, Profile, SessionLog } from '../core/types';
 import { EXERCISES } from '../data/exercises';
-import { fr1, hours, int, Ring } from '../ui/controls';
-import { IconCheck, IconChevron, IconGear, IconLink, IconMoon } from '../ui/icons';
+import { fr1, hours, int } from '../ui/controls';
+import { IconCheck, IconChevron, IconGear, IconLink } from '../ui/icons';
 import { useToday } from '../ui/hooks';
 import { prepareAudio } from '../ui/sound';
 
@@ -22,8 +22,6 @@ function nextPlanned(today: ISODate, p: Profile, sessions: SessionLog[]): { date
   }
   return null;
 }
-
-const STEPS_GOAL = 8000;
 
 export function Today({ onSession, onSettings, onCheckin, onFood }: { onSession(): void; onSettings(): void; onCheckin(): void; onFood(): void }) {
   const data = useApp((r) => r.data);
@@ -76,18 +74,21 @@ export function Today({ onSession, onSettings, onCheckin, onFood }: { onSession(
         </button>
       ) : null}
 
-      {!day?.checkinAt ? (
-        <button type="button" className="card nudge" onClick={onCheckin}>
-          <span className="nudge-icon">
-            <IconMoon size={22} />
-          </span>
-          <span>
-            <strong>Ton point du matin</strong>
-            <small>Poids, sommeil, forme.</small>
-          </span>
-          <IconChevron size={20} />
-        </button>
-      ) : null}
+      <button type="button" className="card morning" onClick={onCheckin} aria-label="Ton point du matin">
+        <span>
+          <small>Poids</small>
+          {day?.weight !== undefined ? <b className="num">{fr1(day.weight)}</b> : <b className="todo">+ noter</b>}
+        </span>
+        <span>
+          <small>Sommeil</small>
+          {day?.sleepH !== undefined && day.checkinAt ? <b className="num">{hours(day.sleepH)}</b> : <b className="todo">+ noter</b>}
+        </span>
+        <span>
+          <small>Forme</small>
+          {day?.recovery !== undefined ? <b className="num">{day.recovery}/10</b> : <b className="todo">+ noter</b>}
+        </span>
+        <IconChevron size={18} />
+      </button>
 
       {active ? (
         <section className="card hero">
@@ -112,53 +113,30 @@ export function Today({ onSession, onSettings, onCheckin, onFood }: { onSession(
         <SessionCard plan={featured.plan} date={featured.date} soon={soon} block={loc?.block ?? 1} onStart={() => start(featured.plan)} />
       ) : null}
 
-      <section className="card day" aria-label="Ta journée">
-        <button type="button" className="day-ring" onClick={onFood}>
-          <Ring value={day?.kcal ?? 0} max={target} color="var(--mint)">
-            <b className="num">{day?.kcal !== undefined ? int(day.kcal) : '–'}</b>
-          </Ring>
-          <strong>Calories</strong>
-          <small className="num">sur {int(target)}</small>
-        </button>
-        <button type="button" className="day-ring" onClick={onFood}>
-          <Ring value={day?.protein ?? 0} max={macros.protein} color="var(--sky)">
-            <b className="num">{day?.protein !== undefined ? `${int(day.protein)}` : '–'}</b>
-          </Ring>
-          <strong>Protéines</strong>
-          <small className="num">sur {macros.protein} g</small>
-        </button>
-        <button type="button" className="day-ring" onClick={onFood}>
-          <Ring value={day?.steps ?? 0} max={STEPS_GOAL} color="var(--amber)">
-            <b className="num">{day?.steps !== undefined ? (day.steps >= 10000 ? `${fr1(day.steps / 1000)} k` : int(day.steps)) : '–'}</b>
-          </Ring>
-          <strong>Pas</strong>
-          <small className="num">sur {int(STEPS_GOAL)}</small>
-        </button>
-      </section>
+      <button type="button" className="card eat" onClick={onFood}>
+        <span className="eat-row">
+          <strong>Manger</strong>
+          <span className="num">
+            {day?.kcal !== undefined ? int(day.kcal) : 0} / {int(target)} kcal
+          </span>
+        </span>
+        <span className="eat-bar" aria-hidden="true">
+          <i style={{ width: `${Math.min(100, ((day?.kcal ?? 0) / Math.max(1, target)) * 100)}%` }} />
+        </span>
+        <span className="eat-row sub">
+          <span>Protéines</span>
+          <span className="num">
+            {day?.protein !== undefined ? int(day.protein) : 0} / {macros.protein} g
+          </span>
+        </span>
+      </button>
 
-      <section className={`card tip${tip.urgent ? ' urgent' : ''}`}>
-        <h2>{tip.title}</h2>
-        <p>{tip.body}</p>
-      </section>
-
-      {day?.checkinAt ? (
-        <button type="button" className="card morning" onClick={onCheckin}>
-          <span>
-            <small>Sommeil</small>
-            <b className="num">{day.sleepH !== undefined ? hours(day.sleepH) : '–'}</b>
-          </span>
-          <span>
-            <small>Poids</small>
-            <b className="num">{day.weight !== undefined ? `${fr1(day.weight)} kg` : '–'}</b>
-          </span>
-          <span>
-            <small>Forme</small>
-            <b className="num">{day.recovery !== undefined ? `${day.recovery}/10` : '–'}</b>
-          </span>
-        </button>
+      {tip.urgent || tip.origin === 'Sécurité' ? (
+        <section className={`card tip${tip.urgent ? ' urgent' : ''}`}>
+          <h2>{tip.title}</h2>
+          <p>{tip.body}</p>
+        </section>
       ) : null}
-
-      <WeekStrip today={today} profile={p} sessions={sessions} />
     </div>
   );
 }
@@ -188,25 +166,5 @@ function SessionCard({ plan, date, soon, block, onStart }: { plan: PlannedSessio
         {soon ? 'Lancer maintenant' : 'Lancer la séance'}
       </button>
     </section>
-  );
-}
-
-function WeekStrip({ today, profile, sessions }: { today: ISODate; profile: Profile; sessions: SessionLog[] }) {
-  const monday = mondayOf(today);
-  const dates = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
-  return (
-    <ol className="week card" aria-label="Ta semaine">
-      {dates.map((d) => {
-        const plan = plannedFor(d, profile);
-        const done = plan ? sameSession(sessions, plan) : undefined;
-        const state = done ? 'done' : !plan ? 'off' : d < today ? 'missed' : 'planned';
-        return (
-          <li key={d} data-state={state} data-now={d === today ? 'true' : undefined}>
-            <span>{DAY_LABEL[dayKey(d)].slice(0, 1)}</span>
-            <i>{done ? <IconCheck size={14} /> : null}</i>
-          </li>
-        );
-      })}
-    </ol>
   );
 }

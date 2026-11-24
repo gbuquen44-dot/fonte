@@ -109,11 +109,11 @@ export const REPLACEMENTS: Record<string, string[]> = {
 };
 
 export const MUSCLE_LABEL: Record<string, string> = {
-  pecs: 'Pectoraux',
+  pecs: 'Pecs',
   dos: 'Dos',
-  deltLat: 'Deltoïde latéral',
-  deltPost: 'Deltoïde arrière',
-  deltAnt: 'Deltoïde avant',
+  deltLat: 'Épaules (côté)',
+  deltPost: 'Arrière d\'épaule',
+  deltAnt: 'Avant d\'épaule',
   traps: 'Trapèzes',
   triceps: 'Triceps',
   biceps: 'Biceps',
@@ -121,8 +121,8 @@ export const MUSCLE_LABEL: Record<string, string> = {
   ischios: 'Ischios',
   fessiers: 'Fessiers',
   mollets: 'Mollets',
-  abdos: 'Abdominaux',
-  erecteurs: 'Érecteurs',
+  abdos: 'Abdos',
+  erecteurs: 'Lombaires',
 };
 
 /** Weekly fractional sets: minimum, useful zone, ceiling. Design values. */

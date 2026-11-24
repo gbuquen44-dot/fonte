@@ -2,23 +2,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import { activeSession, connectCloud, isStale, seedForPreview, useApp } from './state/store';
 import { Today } from './screens/Today';
 import { Programme } from './screens/Programme';
-import { DayEntry, Nutrition } from './screens/Nutrition';
-import { Progress } from './screens/Progress';
-import { Coach } from './screens/Coach';
+import { DayEntry } from './screens/Nutrition';
+import { Me, type MeView } from './screens/Me';
 import { SessionScreen } from './screens/Session';
 import { Checkin } from './screens/Checkin';
 import { Settings, Setup } from './screens/Settings';
-import { IconChart, IconCoach, IconFood, IconProgram, IconToday } from './ui/icons';
+import { IconProgram, IconToday, IconUser } from './ui/icons';
+import { registerCustom } from './core/edit';
 import { useToday } from './ui/hooks';
 
-type Tab = 'today' | 'programme' | 'food' | 'progress' | 'coach';
+type Tab = 'today' | 'programme' | 'me';
 
 const TABS: { id: Tab; label: string; Icon: (p: { size?: number }) => React.ReactElement }[] = [
   { id: 'today', label: 'Aujourd\'hui', Icon: IconToday },
   { id: 'programme', label: 'Programme', Icon: IconProgram },
-  { id: 'food', label: 'Nutrition', Icon: IconFood },
-  { id: 'progress', label: 'Progrès', Icon: IconChart },
-  { id: 'coach', label: 'Coach', Icon: IconCoach },
+  { id: 'me', label: 'Moi', Icon: IconUser },
 ];
 
 function Aurora({ mood }: { mood?: string }) {
@@ -36,6 +34,7 @@ export function App() {
   const loaded = useApp((r) => r.loaded);
   const sync = useApp((r) => r.sync);
   const [tab, setTab] = useState<Tab>('today');
+  const [meView, setMeView] = useState<MeView>(null);
   const [sessionOpen, setSessionOpen] = useState(false);
   const [checkin, setCheckin] = useState(false);
   const [entry, setEntry] = useState(false);
@@ -69,7 +68,9 @@ export function App() {
 
   useEffect(() => {
     main.current?.scrollTo({ top: 0 });
-  }, [tab]);
+  }, [tab, meView]);
+
+  registerCustom(data.profile?.customExercises);
 
   if (!data.profile) {
     return (
@@ -91,12 +92,20 @@ export function App() {
     <div className="app">
       <Aurora mood={sessionOpen ? 'session' : undefined} />
       <main className="main" ref={main}>
-        <div className="page" key={tab}>
-          {tab === 'today' ? <Today onSession={() => setSessionOpen(true)} onSettings={() => setSettings(true)} onCheckin={() => setCheckin(true)} onFood={() => setTab('food')} /> : null}
+        <div className="page" key={tab === 'me' ? `me-${meView}` : tab}>
+          {tab === 'today' ? (
+            <Today
+              onSession={() => setSessionOpen(true)}
+              onSettings={() => setSettings(true)}
+              onCheckin={() => setCheckin(true)}
+              onFood={() => {
+                setMeView('food');
+                setTab('me');
+              }}
+            />
+          ) : null}
           {tab === 'programme' ? <Programme onSession={() => setSessionOpen(true)} /> : null}
-          {tab === 'food' ? <Nutrition onEntry={() => setEntry(true)} /> : null}
-          {tab === 'progress' ? <Progress /> : null}
-          {tab === 'coach' ? <Coach /> : null}
+          {tab === 'me' ? <Me view={meView} onView={setMeView} onSettings={() => setSettings(true)} onEntry={() => setEntry(true)} /> : null}
         </div>
       </main>
       <nav className="tabs" aria-label="Navigation" style={{ '--i': TABS.findIndex((t) => t.id === tab) } as React.CSSProperties}>
@@ -108,7 +117,8 @@ export function App() {
             className={tab === id ? 'on' : ''}
             aria-current={tab === id ? 'page' : undefined}
             onClick={() => {
-              if (tab === id) main.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              if (tab === id && id === 'me' && meView) setMeView(null);
+              else if (tab === id) main.current?.scrollTo({ top: 0, behavior: 'smooth' });
               setTab(id);
             }}
           >

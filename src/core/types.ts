@@ -65,6 +65,27 @@ export interface Scheme {
 
 export type SessionKey = 'mon' | 'tue' | 'wed' | 'fri' | 'sat' | 'sun';
 
+/** One exercise of a muscle-building day, as he edits it in the app. */
+export interface Slot {
+  exId: string;
+  sets: number;
+  reps: number;
+  repsMax: number;
+  /** Reps left in the tank as an RPE; 10 is failure. Unset: close to failure. */
+  rpe?: number;
+  /** As many reps as he can. */
+  max?: boolean;
+  /** Slots sharing a group next to each other run as a superset. */
+  group?: string;
+  note?: string;
+}
+
+export interface DayPlan {
+  title: string;
+  subtitle: string;
+  slots: Slot[];
+}
+
 export interface PlannedSession {
   key: SessionKey;
   title: string;
@@ -194,6 +215,12 @@ export interface Profile {
   programStart: ISODate;
   /** A session done on another day than planned, or a day without the gym. */
   moves?: Record<ISODate, SessionKey | 'off'>;
+  /** His edits to the muscle-building days, every week. */
+  muscu?: Partial<Record<SessionKey, DayPlan>>;
+  /** A change for one date only. */
+  muscuDays?: Record<ISODate, Slot[]>;
+  /** Exercises he created himself. */
+  customExercises?: ExerciseDef[];
   maintenance: number;
   maintenanceLow: number;
   maintenanceHigh: number;

@@ -124,3 +124,9 @@ export const IconBack = (p: P) => (
     <path d="M14.500 6l-6 6 6 6" />
   </Svg>
 );
+export const IconUser = (p: P) => (
+  <Svg {...p}>
+    <circle cx="12" cy="8.200" r="3.900" />
+    <path d="M4.500 20.200c1.400-3.600 4.300-5.400 7.500-5.400s6.100 1.800 7.500 5.400" />
+  </Svg>
+);

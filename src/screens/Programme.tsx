@@ -9,6 +9,7 @@ import { EXERCISES } from '../data/exercises';
 import { kg, Segmented } from '../ui/controls';
 import { IconCheck, IconChevron } from '../ui/icons';
 import { useToday } from '../ui/hooks';
+import { DayEditor } from './Editor';
 import { prepareAudio } from '../ui/sound';
 import { sameSession } from './Today';
 
@@ -28,6 +29,7 @@ export function Programme({ onSession }: { onSession(): void }) {
   const [week, setWeek] = useState(here?.blockWeek ?? 1);
   const [open, setOpen] = useState<SessionKey | null>(here?.key ?? 'tue');
   const [legend, setLegend] = useState(false);
+  const [edit, setEdit] = useState<{ key: SessionKey; date: ISODate } | null>(null);
   const active = activeSession(data);
   const muscu = block === 0;
   const days = weekDates(p.programStart, block, week).map((date) => ({ date, key: locate(date, p.programStart, p.moves)?.key ?? null }));
@@ -86,9 +88,11 @@ export function Programme({ onSession }: { onSession(): void }) {
               </li>
             );
           }
-          const plan = buildSession(block, week, key);
+          const plan = buildSession(block, week, key, p.muscu, p.muscuDays?.[date]);
           return (
             <DayCard
+              changed={muscu && !!p.muscuDays?.[date]}
+              onEdit={muscu ? () => setEdit({ key, date }) : undefined}
               key={key}
               plan={plan}
               date={date}
@@ -109,16 +113,17 @@ export function Programme({ onSession }: { onSession(): void }) {
         })}
         {skipped.map((key) => (
           <li key={key} className="day-off">
-            <span>{buildSession(block, week, key).title}</span>
+            <span>{buildSession(block, week, key, p.muscu).title}</span>
             <span>Pas cette semaine</span>
           </li>
         ))}
       </ol>
+      {edit ? <DayEditor open={!!edit} sessionKey={edit.key} date={edit.date} onClose={() => setEdit(null)} /> : null}
     </div>
   );
 }
 
-function DayCard({ plan, date, isToday, done, open, onToggle, tm, history, busy, onStart }: { plan: PlannedSession; date: ISODate; isToday: boolean; done?: SessionLog; open: boolean; onToggle(): void; tm: Record<LiftKey, number>; history: SessionLog[]; busy: boolean; onStart(): void }) {
+function DayCard({ plan, date, isToday, done, open, onToggle, tm, history, busy, onStart, onEdit, changed }: { plan: PlannedSession; date: ISODate; isToday: boolean; done?: SessionLog; open: boolean; onToggle(): void; tm: Record<LiftKey, number>; history: SessionLog[]; busy: boolean; onStart(): void; onEdit?(): void; changed?: boolean }) {
   return (
     <li className={`card daycard${open ? ' open' : ''}${isToday ? ' today' : ''}`}>
       <button type="button" className="daycard-head" aria-expanded={open} onClick={onToggle}>
@@ -126,6 +131,7 @@ function DayCard({ plan, date, isToday, done, open, onToggle, tm, history, busy,
           <small>
             {DAY_LABEL[dayKey(date)]} {shortDate(date)}
             {isToday ? ' · Aujourd\'hui' : ''}
+            {changed ? ' · modifiée ce jour-là' : ''}
           </small>
           <strong>{plan.title}</strong>
           <small className="num">
@@ -151,6 +157,11 @@ function DayCard({ plan, date, isToday, done, open, onToggle, tm, history, busy,
           {!done && !busy ? (
             <button type="button" className={`btn ${isToday ? 'primary big' : 'ghost'}`} onClick={onStart}>
               {isToday ? 'Lancer la séance' : 'Lancer cette séance'}
+            </button>
+          ) : null}
+          {onEdit ? (
+            <button type="button" className="btn ghost small daycard-edit" onClick={onEdit}>
+              Modifier cette séance
             </button>
           ) : null}
         </div>

@@ -6,6 +6,7 @@ import { addDays, dayKey, diffDays, mondayOf } from './dates';
 import { attempts, detectPRs, e1rm, platesPerSide, roundLoad, rolling3 } from './lifting';
 import { buildSession, buildWeek, chartRpe, dateOfSession, estimateMinutes, hardSets, locate, MUSCU_START, pctForRepsToFailure, plannedFor, planRows, SESSION_KEYS, weekDates } from './program';
 import { EXERCISES } from '../data/exercises';
+import { linkedToNext, moveSlot, normalizeGroups, pickable, toggleSuperset } from './edit';
 import {
   addSet,
   createSession,
@@ -842,5 +843,38 @@ describe('muscle-building loads', () => {
     expect(first.load).toBeLessThan(110);
     expect(first.load).toBeGreaterThan(90);
     expect(first.first).toBe(true);
+  });
+});
+
+describe('editing the muscle-building days', () => {
+  const s = (exId: string, group?: string) => ({ exId, sets: 2, reps: 6, repsMax: 9, group });
+
+  it('keeps supersets only between neighbours', () => {
+    expect(normalizeGroups([s('a', 'x'), s('b'), s('c', 'x')]).map((x) => x.group)).toEqual([undefined, undefined, undefined]);
+    const moved = moveSlot([s('a', 'x'), s('b', 'x'), s('c')], 0, 2);
+    expect(moved.map((x) => x.exId)).toEqual(['b', 'c', 'a']);
+    expect(moved.every((x) => !x.group)).toBe(true);
+  });
+
+  it('links and unlinks a superset with the next exercise', () => {
+    const on = toggleSuperset([s('a'), s('b'), s('c', 'a'), s('d', 'a')], 0);
+    expect(on[0].group).toBeDefined();
+    expect(on[0].group).toBe(on[1].group);
+    expect(on[0].group).not.toBe('a');
+    expect(linkedToNext(on, 0)).toBe(true);
+    const off = toggleSuperset(on, 0);
+    expect(off.every((x, i) => i > 1 || !x.group)).toBe(true);
+  });
+
+  it('uses his edits every week, and a one-day change only on that day', () => {
+    const muscu = { tue: { title: 'Devant', subtitle: '', slots: [s('pecFly'), s('curlIncline')] } };
+    const p = { programStart: '2026-11-02', muscu, muscuDays: { '2026-12-08': [s('bench')] } };
+    expect(plannedFor('2026-12-01', p)?.exercises.map((e) => e.exId)).toEqual(['pecFly', 'curlIncline']);
+    expect(plannedFor('2026-12-08', p)?.exercises.map((e) => e.exId)).toEqual(['bench']);
+    expect(plannedFor('2026-12-02', p)?.title).toBe('Derrière');
+  });
+
+  it('never offers calves', () => {
+    expect(pickable().some((e) => e.id === 'mollets')).toBe(false);
   });
 });
