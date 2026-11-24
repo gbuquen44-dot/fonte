@@ -184,6 +184,10 @@ export interface DayLog {
   /** The day was typed by hand: Health no longer overwrites these fields. */
   manualFood?: boolean;
   manualSteps?: boolean;
+  /** Energy, mood and focus he gave in his notes, with the time he said it. */
+  pulses?: { at: number; energy?: number; mood?: number; focus?: number }[];
+  /** Short facts Claude kept from his notes: meal times, caffeine, how a session went. */
+  facts?: { at: number; text: string }[];
   updatedAt: number;
 }
 
@@ -221,6 +225,10 @@ export interface Profile {
   muscuDays?: Record<ISODate, Slot[]>;
   /** Exercises he created himself. */
   customExercises?: ExerciseDef[];
+  /** Who he is and what he aims for, sent with each note so Claude sorts it well. Private data only. */
+  about?: string;
+  /** His names for the four projects, such as the name of his business. */
+  projects?: Partial<Record<'biz' | 'ecole' | 'salle' | 'perso', { label: string; short?: string }>>;
   maintenance: number;
   maintenanceLow: number;
   maintenanceHigh: number;

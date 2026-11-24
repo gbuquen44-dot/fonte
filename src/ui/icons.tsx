@@ -130,3 +130,39 @@ export const IconUser = (p: P) => (
     <path d="M4.500 20.200c1.400-3.600 4.300-5.400 7.500-5.400s6.100 1.800 7.500 5.400" />
   </Svg>
 );
+export const IconMic = (p: P) => (
+  <Svg {...p}>
+    <rect x="9" y="3" width="6" height="11.500" rx="3" />
+    <path d="M5.500 11a6.500 6.500 0 0 0 13 0M12 17.500V21" />
+  </Svg>
+);
+export const IconPulse = (p: P) => (
+  <Svg {...p}>
+    <path d="M3 12h4l2.500-6.500 5 13L17 12h4" />
+  </Svg>
+);
+export const IconWeight = (p: P) => (
+  <Svg {...p}>
+    <path d="M6.500 7v10M17.500 7v10M3.500 10v4M20.500 10v4M6.500 12h11" />
+  </Svg>
+);
+export const IconStop = (p: P) => (
+  <Svg {...p} fill>
+    <rect x="6" y="6" width="12" height="12" rx="2.500" />
+  </Svg>
+);
+export const IconPlay = (p: P) => (
+  <Svg {...p} fill>
+    <path d="M8 5.500v13a1 1 0 0 0 1.500.870l10.500-6.500a1 1 0 0 0 0-1.740L9.500 4.630A1 1 0 0 0 8 5.500z" />
+  </Svg>
+);
+export const IconIdea = (p: P) => (
+  <Svg {...p}>
+    <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.500 10.900V16h7v-2.100A6 6 0 0 0 12 3z" />
+  </Svg>
+);
+export const IconArrowRight = (p: P) => (
+  <Svg {...p}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </Svg>
+);

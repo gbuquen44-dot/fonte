@@ -23,7 +23,7 @@ function nextPlanned(today: ISODate, p: Profile, sessions: SessionLog[]): { date
   return null;
 }
 
-export function Today({ onSession, onSettings, onCheckin, onFood }: { onSession(): void; onSettings(): void; onCheckin(): void; onFood(): void }) {
+export function Today({ onSession, onSettings, onCheckin, onFood, embedded }: { onSession(): void; onSettings(): void; onCheckin(): void; onFood(): void; embedded?: boolean }) {
   const data = useApp((r) => r.data);
   const sync = useApp((r) => r.sync);
   const today = useToday();
@@ -49,17 +49,8 @@ export function Today({ onSession, onSettings, onCheckin, onFood }: { onSession(
   const featured = !active && !doneToday ? (planned ? { date: today, plan: planned } : upcoming) : null;
   const soon = featured && featured.date !== today ? diffDays(featured.date, today) : 0;
 
-  return (
-    <div className="screen">
-      <header className="head">
-        <div>
-          <p>{longDate(today)}</p>
-          <h1>Aujourd'hui</h1>
-        </div>
-        <button type="button" className="round big" onClick={onSettings} aria-label="Réglages">
-          <IconGear size={22} />
-        </button>
-      </header>
+  const body = (
+    <>
 
       {sync === 'denied' ? (
         <button type="button" className="card nudge" onClick={onSettings}>
@@ -137,6 +128,22 @@ export function Today({ onSession, onSettings, onCheckin, onFood }: { onSession(
           <p>{tip.body}</p>
         </section>
       ) : null}
+    </>
+  );
+
+  if (embedded) return body;
+  return (
+    <div className="screen">
+      <header className="head">
+        <div>
+          <p>{longDate(today)}</p>
+          <h1>Aujourd'hui</h1>
+        </div>
+        <button type="button" className="round big" onClick={onSettings} aria-label="Réglages">
+          <IconGear size={22} />
+        </button>
+      </header>
+      {body}
     </div>
   );
 }

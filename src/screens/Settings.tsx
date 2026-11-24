@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { connectToken, DATA_REPO, disconnect, exportJson, getToken, importJson, pull, setProfile, updateProfile, useApp } from '../state/store';
+import { connectToken, DATA_REPO, disconnect, exportJson, getClaudeKey, getToken, importJson, pull, setClaudeKey, setProfile, updateProfile, useApp } from '../state/store';
 import type { LiftKey, Phase, Profile } from '../core/types';
 import { LIFT_LABEL, LIFTS } from '../core/lifting';
 import { Choice, Keypad, kg, MultiChoice, Sheet, SheetHead } from '../ui/controls';
@@ -63,6 +63,51 @@ export function Connect({ onDone }: { onDone?(): void }) {
   );
 }
 
+/** His Claude key lives on this phone only: never in the backup, never in the code. */
+function ClaudeKey() {
+  const [key, setKey] = useState(getClaudeKey());
+  const [draft, setDraft] = useState('');
+  const [edit, setEdit] = useState(!key);
+  return (
+    <>
+      <h3>Clé Claude</h3>
+      <p className="muted">Elle sert à ranger tes notes dictées. Elle reste sur ce téléphone, jamais dans ta sauvegarde.</p>
+      {edit ? (
+        <>
+          <input type="password" autoComplete="off" spellCheck={false} placeholder="sk-ant-…" value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="Clé Claude" />
+          <div className="two">
+            {key ? (
+              <button type="button" className="btn ghost" onClick={() => setEdit(false)}>
+                Annuler
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn primary"
+              disabled={!draft.trim().startsWith('sk-')}
+              onClick={() => {
+                setClaudeKey(draft);
+                setKey(draft.trim());
+                setDraft('');
+                setEdit(false);
+              }}
+            >
+              Enregistrer la clé
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="two">
+          <p className="muted">Clé enregistrée, finissant par {key?.slice(-4)}.</p>
+          <button type="button" className="btn ghost" onClick={() => setEdit(true)}>
+            Changer
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function Settings({ open, onClose }: { open: boolean; onClose(): void }) {
   const data = useApp((r) => r.data);
   const sync = useApp((r) => r.sync);
@@ -118,6 +163,14 @@ export function Settings({ open, onClose }: { open: boolean; onClose(): void }) 
               Connecter ma sauvegarde
             </button>
           )}
+
+          <ClaudeKey />
+
+          <h3>Ce que Claude doit savoir de toi</h3>
+          <p className="muted">Envoyé avec chaque note pour qu'il range bien : qui tu es, tes buts, tes projets.</p>
+          <textarea rows={4} defaultValue={p.about ?? ''} onBlur={(e) => e.target.value !== (p.about ?? '') && updateProfile({ about: e.target.value.trim() })} aria-label="Ce que Claude doit savoir de toi" />
+          <h3>Nom de ton business</h3>
+          <input type="text" defaultValue={p.projects?.biz?.label ?? ''} placeholder="Business" onBlur={(e) => updateProfile({ projects: { ...p.projects, biz: e.target.value.trim() ? { label: e.target.value.trim() } : undefined } })} aria-label="Nom de ton business" />
 
           <h3>Pas, calories et repas</h3>
           <p className="muted">

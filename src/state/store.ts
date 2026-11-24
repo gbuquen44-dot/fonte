@@ -3,12 +3,16 @@ import type { DayLog, PlannedSession, Profile, SessionLog } from '../core/types'
 import { todayISO, type ISODate } from '../core/dates';
 import { createSession } from '../core/session';
 import { healthPatch, parseHealthExport } from '../core/health';
+import { applyBrain, runningBlock, type Note, type Project, type Todo, type WorkDay } from '../core/head';
 import { dispatch, GhError, listFiles, readText, removeFile, writeText, type GhConfig, type GhFile } from './github';
 
 export interface AppData {
   profile: Profile | null;
   days: Record<ISODate, DayLog>;
   sessions: Record<string, SessionLog>;
+  notes: Record<string, Note>;
+  todos: Record<string, Todo>;
+  work: Record<ISODate, WorkDay>;
 }
 
 export type SyncStatus = 'connecting' | 'synced' | 'saving' | 'offline' | 'local' | 'denied';
@@ -19,6 +23,8 @@ interface Runtime {
   loaded: boolean;
   /** Last time the iPhone sent Health numbers. */
   healthAt: number | null;
+  /** Notes Claude is sorting right now. */
+  sorting: string[];
 }
 
 const KEY = 'fonte.v1';
@@ -43,10 +49,10 @@ function readJson<T>(key: string, fallback: T): T {
 
 function readLocal(): AppData {
   const parsed = readJson<Partial<AppData>>(KEY, {});
-  return { profile: parsed.profile ?? null, days: parsed.days ?? {}, sessions: parsed.sessions ?? {} };
+  return { profile: parsed.profile ?? null, days: parsed.days ?? {}, sessions: parsed.sessions ?? {}, notes: parsed.notes ?? {}, todos: parsed.todos ?? {}, work: parsed.work ?? {} };
 }
 
-let state: Runtime = { data: readLocal(), sync: 'connecting', loaded: false, healthAt: readJson<number | null>(HEALTH_KEY, null) };
+let state: Runtime = { data: readLocal(), sync: 'connecting', loaded: false, healthAt: readJson<number | null>(HEALTH_KEY, null), sorting: [] };
 const listeners = new Set<() => void>();
 const dirty = new Set<string>(readJson<string[]>(DIRTY_KEY, []));
 const shas = new Map<string, string>(Object.entries(readJson<Record<string, string>>(SHA_KEY, {})));
@@ -159,10 +165,13 @@ export function importJson(text: string): boolean {
   try {
     const raw = JSON.parse(text);
     if (raw.app !== 'fonte') return false;
-    const data: AppData = { profile: raw.profile ?? state.data.profile, days: raw.days ?? {}, sessions: raw.sessions ?? {} };
+    const data: AppData = { profile: raw.profile ?? state.data.profile, days: raw.days ?? {}, sessions: raw.sessions ?? {}, notes: raw.notes ?? {}, todos: raw.todos ?? {}, work: raw.work ?? {} };
     const paths = [
       ...Object.keys(data.days).map((d) => `days/${d}`),
       ...Object.keys(data.sessions).map((s) => `sessions/${s}`),
+      ...Object.keys(data.notes).map((s) => `notes/${s}`),
+      ...Object.keys(data.todos).map((s) => `todos/${s}`),
+      ...Object.keys(data.work).map((s) => `work/${s}`),
       'profile/main',
     ];
     commit(data, paths);
@@ -211,7 +220,13 @@ const fileOf = (path: string) => `${path}.json`;
 function bodyOf(path: string): unknown {
   const [col, id] = path.split('/');
   const d = state.data;
-  return col === 'days' ? d.days[id] : col === 'sessions' ? d.sessions[id] : col === 'profile' ? d.profile : null;
+  if (col === 'days') return d.days[id];
+  if (col === 'sessions') return d.sessions[id];
+  if (col === 'profile') return d.profile;
+  if (col === 'notes') return d.notes[id];
+  if (col === 'todos') return d.todos[id];
+  if (col === 'work') return d.work[id];
+  return null;
 }
 
 function failed(e: unknown) {
@@ -319,9 +334,12 @@ export async function pull(force = false) {
   try {
     const files = await listFiles(c);
     lastPull = Date.now();
-    const docs = files.filter((f) => /^(profile|days|sessions)\/[^/]+\.json$/.test(f.path) && shas.get(f.path) !== f.sha);
+    const docs = files.filter((f) => /^(profile|days|sessions|notes|todos|work)\/[^/]+\.json$/.test(f.path) && shas.get(f.path) !== f.sha);
     const days = { ...state.data.days };
     const sessions = { ...state.data.sessions };
+    const notes = { ...state.data.notes };
+    const todos = { ...state.data.todos };
+    const work = { ...state.data.work };
     let profile = state.data.profile;
     await fetchAll(docs, async (f) => {
       const parsed = JSON.parse(await readText(c, f.sha)) as Stamped;
@@ -330,15 +348,19 @@ export async function pull(force = false) {
       const id = name.replace(/\.json$/, '');
       if (col === 'days') mergeDoc('days', id, days, parsed as DayLog);
       else if (col === 'sessions') mergeDoc('sessions', id, sessions, parsed as SessionLog);
+      else if (col === 'notes') mergeDoc('notes', id, notes, parsed as Note);
+      else if (col === 'todos') mergeDoc('todos', id, todos, parsed as Todo);
+      else if (col === 'work') mergeDoc('work', id, work, parsed as WorkDay);
       else if (!dirty.has('profile/main') && (!profile || !profile.linked || (parsed.updatedAt ?? 0) > (profile.updatedAt ?? 0))) profile = { ...(parsed as Profile), linked: true };
     });
-    state = { ...state, data: { profile, days, sessions } };
+    state = { ...state, data: { profile, days, sessions, notes, todos, work } };
     persist();
     emit();
     dropEmptySessions();
     setSync(dirty.size ? 'saving' : 'synced', true);
     await readInbox(c, files);
     void askYazio(c);
+    void sortPending();
     scheduleFlush(300);
   } catch (e) {
     failed(e);
@@ -401,9 +423,182 @@ export function disconnect() {
 
 export const syncState = () => ({ sync: state.sync, loaded: state.loaded, pending: dirty.size });
 
-export function seedForPreview(p: Profile, days: Record<ISODate, DayLog>, sessions: Record<string, SessionLog> = {}) {
+export function seedForPreview(p: Profile, days: Record<ISODate, DayLog>, sessions: Record<string, SessionLog> = {}, extra: Partial<Pick<AppData, 'notes' | 'todos' | 'work'>> = {}) {
   if (state.data.profile) return;
-  state = { ...state, data: { ...state.data, profile: p, days: { ...days, ...state.data.days }, sessions: { ...sessions, ...state.data.sessions } } };
+  state = { ...state, data: { ...state.data, profile: p, days: { ...days, ...state.data.days }, sessions: { ...sessions, ...state.data.sessions }, ...extra } };
   persist();
   emit();
+}
+
+/* Tête: notes, to-do and Lock-in. */
+
+const CLAUDE_KEY = 'lockin.claude.v1';
+
+export function getClaudeKey(): string | null {
+  try {
+    return localStorage.getItem(CLAUDE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setClaudeKey(key: string | null) {
+  try {
+    if (key) localStorage.setItem(CLAUDE_KEY, key.trim());
+    else localStorage.removeItem(CLAUDE_KEY);
+  } catch {
+    /* private mode: the key stays for this visit only */
+  }
+  emit();
+  if (key) void sortPending();
+}
+
+export function saveTodo(t: Todo) {
+  commit({ ...state.data, todos: { ...state.data.todos, [t.id]: { ...t, updatedAt: Date.now() } } }, [`todos/${t.id}`]);
+}
+
+export function patchTodo(id: string, patch: Partial<Todo>) {
+  const t = state.data.todos[id];
+  if (t) saveTodo({ ...t, ...patch });
+}
+
+export function removeTodo(id: string) {
+  const todos = { ...state.data.todos };
+  delete todos[id];
+  state = { ...state, data: { ...state.data, todos } };
+  dirty.delete(`todos/${id}`);
+  persist();
+  emit();
+  void removeRemote(`todos/${id}`);
+}
+
+function saveNote(n: Note) {
+  commit({ ...state.data, notes: { ...state.data.notes, [n.id]: { ...n, updatedAt: Date.now() } } }, [`notes/${n.id}`]);
+}
+
+export function addNote(text: string, source: Note['source'] = 'app'): Note {
+  const now = Date.now();
+  const note: Note = { id: `${todayISO()}-${now.toString(36)}`, text: text.trim(), at: now, date: todayISO(), source, status: 'pending', updatedAt: now };
+  saveNote(note);
+  void sortPending();
+  return note;
+}
+
+export function retryNote(id: string) {
+  const n = state.data.notes[id];
+  if (!n) return;
+  saveNote({ ...n, status: 'pending', error: undefined });
+  void sortPending();
+}
+
+export function removeNote(id: string) {
+  const notes = { ...state.data.notes };
+  delete notes[id];
+  state = { ...state, data: { ...state.data, notes } };
+  dirty.delete(`notes/${id}`);
+  persist();
+  emit();
+  void removeRemote(`notes/${id}`);
+}
+
+const WEEKDAY = new Intl.DateTimeFormat('fr-FR', { weekday: 'long' });
+
+const ERROR_TEXT: Record<string, string> = {
+  cle: 'Ta clé Claude ne marche pas. Vérifie-la dans Réglages.',
+  reseau: 'Pas de réseau. Je la range dès que ça revient.',
+  limite: 'Claude est saturé pour l\'instant. Je réessaie tout seul.',
+  refus: 'Claude n\'a pas voulu ranger cette note.',
+  autre: 'Je n\'ai pas réussi à la ranger.',
+};
+
+let sortingNow = false;
+
+/** Sorts every note still waiting, one at a time. Notes stay saved even when this fails. */
+export async function sortPending() {
+  const key = getClaudeKey();
+  if (!key || sortingNow) return;
+  const waiting = Object.values(state.data.notes).filter((n) => n.status === 'pending').sort((a, b) => a.at - b.at);
+  if (!waiting.length) return;
+  sortingNow = true;
+  try {
+    const { sortWithClaude, SortError } = await import('./brain');
+    for (const note of waiting) {
+      state = { ...state, sorting: [...state.sorting, note.id] };
+      emit();
+      const open = Object.values(state.data.todos).filter((t) => t.kind === 'task' && !t.doneAt);
+      try {
+        const out = await sortWithClaude(key, note, {
+          today: note.date,
+          weekday: WEEKDAY.format(new Date(note.at)),
+          about: state.data.profile?.about,
+          open: open.map((t) => ({ id: t.id, title: t.title })),
+        });
+        applyNote(note, out, open);
+      } catch (e) {
+        const kind = e instanceof SortError ? e.kind : 'autre';
+        const fresh = state.data.notes[note.id];
+        if (fresh && kind !== 'reseau' && kind !== 'limite') saveNote({ ...fresh, status: 'error', error: ERROR_TEXT[kind] });
+        if (kind === 'cle' || kind === 'reseau' || kind === 'limite') break;
+      } finally {
+        state = { ...state, sorting: state.sorting.filter((x) => x !== note.id) };
+        emit();
+      }
+    }
+  } finally {
+    sortingNow = false;
+  }
+}
+
+function applyNote(note: Note, out: import('../core/head').BrainOut, open: Todo[]) {
+  const now = Date.now();
+  const r = applyBrain(note, out, open, now, note.date);
+  const d = state.data;
+  const todos = { ...d.todos };
+  const paths: string[] = [`notes/${note.id}`];
+  for (const t of r.todos) {
+    todos[t.id] = t;
+    paths.push(`todos/${t.id}`);
+  }
+  for (const id of r.doneIds) {
+    if (!todos[id]) continue;
+    todos[id] = { ...todos[id], doneAt: now, updatedAt: now };
+    paths.push(`todos/${id}`);
+  }
+  const days = { ...d.days };
+  if (r.pulse || r.facts.length) {
+    const prev = days[note.date] ?? { date: note.date, updatedAt: now };
+    days[note.date] = {
+      ...prev,
+      pulses: r.pulse ? [...(prev.pulses ?? []), r.pulse] : prev.pulses,
+      facts: r.facts.length ? [...(prev.facts ?? []), ...r.facts.map((text) => ({ at: note.at, text }))] : prev.facts,
+      updatedAt: now,
+    };
+    paths.push(`days/${note.date}`);
+  }
+  const work = { ...d.work };
+  if (r.blocks.length) {
+    const prev = work[note.date] ?? { date: note.date, blocks: [], updatedAt: now };
+    work[note.date] = { ...prev, blocks: [...prev.blocks, ...r.blocks], updatedAt: now };
+    paths.push(`work/${note.date}`);
+  }
+  const notes = { ...d.notes, [note.id]: { ...(d.notes[note.id] ?? note), status: 'done' as const, error: undefined, summary: out.resume, made: r.made, updatedAt: now } };
+  commit({ ...d, notes, todos, days, work }, paths);
+}
+
+export function startLock(project: Project) {
+  stopLock();
+  const now = Date.now();
+  const date = todayISO();
+  const prev = state.data.work[date] ?? { date, blocks: [], updatedAt: now };
+  const next: WorkDay = { ...prev, blocks: [...prev.blocks, { project, start: now, source: 'lockin' }], updatedAt: now };
+  commit({ ...state.data, work: { ...state.data.work, [date]: next } }, [`work/${date}`]);
+}
+
+export function stopLock() {
+  const run = runningBlock(state.data.work, todayISO());
+  if (!run) return;
+  const now = Date.now();
+  const day = state.data.work[run.date];
+  const blocks = day.blocks.map((b, i) => (i === run.index ? { ...b, end: now } : b));
+  commit({ ...state.data, work: { ...state.data.work, [run.date]: { ...day, blocks, updatedAt: now } } }, [`work/${run.date}`]);
 }

@@ -1,44 +1,42 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { activeSession, connectCloud, isStale, seedForPreview, useApp } from './state/store';
-import { Today } from './screens/Today';
-import { Programme } from './screens/Programme';
+import { Home } from './screens/Home';
+import { Head } from './screens/Head';
+import { Life } from './screens/Life';
+import { Sport, type SportView } from './screens/Sport';
 import { DayEntry } from './screens/Nutrition';
-import { Me, type MeView } from './screens/Me';
 import { SessionScreen } from './screens/Session';
 import { Checkin } from './screens/Checkin';
+import { Capture } from './screens/Capture';
 import { Settings, Setup } from './screens/Settings';
-import { IconProgram, IconToday, IconUser } from './ui/icons';
+import { IconList, IconMic, IconPulse, IconToday, IconWeight } from './ui/icons';
 import { registerCustom } from './core/edit';
+import { setProjectNames } from './core/head';
 import { useToday } from './ui/hooks';
 
-type Tab = 'today' | 'programme' | 'me';
+type Tab = 'today' | 'head' | 'life' | 'sport';
 
 const TABS: { id: Tab; label: string; Icon: (p: { size?: number }) => React.ReactElement }[] = [
   { id: 'today', label: 'Aujourd\'hui', Icon: IconToday },
-  { id: 'programme', label: 'Programme', Icon: IconProgram },
-  { id: 'me', label: 'Moi', Icon: IconUser },
+  { id: 'head', label: 'Tête', Icon: IconList },
+  { id: 'life', label: 'Vie', Icon: IconPulse },
+  { id: 'sport', label: 'Sport', Icon: IconWeight },
 ];
 
-function Aurora({ mood }: { mood?: string }) {
-  return (
-    <div className="aurora" data-mood={mood} aria-hidden="true">
-      <i />
-      <i />
-      <i />
-    </div>
-  );
-}
+/** The home-screen shortcut opens the app on the dictation: …/fonte/#dicter */
+const wantsCapture = () => location.hash === '#dicter' || new URLSearchParams(location.search).has('dicter');
 
 export function App() {
   const data = useApp((r) => r.data);
   const loaded = useApp((r) => r.loaded);
   const sync = useApp((r) => r.sync);
   const [tab, setTab] = useState<Tab>('today');
-  const [meView, setMeView] = useState<MeView>(null);
+  const [sportView, setSportView] = useState<SportView>('programme');
   const [sessionOpen, setSessionOpen] = useState(false);
   const [checkin, setCheckin] = useState(false);
   const [entry, setEntry] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [capture, setCapture] = useState(wantsCapture);
   const today = useToday();
   const asked = useRef<string>();
   const main = useRef<HTMLElement>(null);
@@ -49,66 +47,74 @@ export function App() {
       if (import.meta.env.DEV) {
         const preview = await import('./state/preview');
         const url = new URLSearchParams(location.search);
-        if (!url.has('blank')) seedForPreview(preview.PREVIEW_PROFILE, preview.previewDays(url.has('rich')), url.has('rich') ? preview.previewSessions() : {});
+        if (!url.has('blank')) seedForPreview(preview.PREVIEW_PROFILE, preview.previewDays(url.has('rich')), url.has('rich') ? preview.previewSessions() : {}, url.has('rich') ? preview.previewHead() : {});
       }
       await connectCloud();
     };
     void boot();
+    const onHash = () => wantsCapture() && setCapture(true);
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
   useEffect(() => {
-    if (!loaded || !data.profile) return;
+    if (!loaded || !data.profile || capture) return;
     // He works late: a launch at 1 a.m. is not his morning.
     const hour = new Date().getHours();
     const morning = hour >= 5 && hour < 14;
     if (active && asked.current === undefined && !isStale(active)) setSessionOpen(true);
     else if (!active && !data.days[today]?.checkinAt && asked.current !== today && morning) setCheckin(true);
     asked.current = morning ? today : (asked.current ?? '');
-  }, [loaded, data.profile, active, today, data.days]);
+  }, [loaded, data.profile, active, today, data.days, capture]);
 
   useEffect(() => {
     main.current?.scrollTo({ top: 0 });
-  }, [tab, meView]);
+  }, [tab, sportView]);
 
   registerCustom(data.profile?.customExercises);
+  setProjectNames(data.profile?.projects);
+
+  const closeCapture = () => {
+    setCapture(false);
+    if (location.hash === '#dicter') history.replaceState(null, '', location.pathname + location.search);
+  };
 
   if (!data.profile) {
-    return (
-      <>
-        <Aurora />
-        {loaded ? (
-          <Setup />
-        ) : (
-          <div className="splash">
-            <span>Fonte</span>
-            {sync === 'offline' ? <small>Pas de réseau pour l'instant. Tes données reviendront avec lui.</small> : null}
-          </div>
-        )}
-      </>
+    return loaded ? (
+      <Setup />
+    ) : (
+      <div className="splash">
+        <span>Lock-in</span>
+        {sync === 'offline' ? <small>Pas de réseau pour l'instant. Tes données reviendront avec lui.</small> : null}
+      </div>
     );
   }
 
   return (
     <div className="app">
-      <Aurora mood={sessionOpen ? 'session' : undefined} />
       <main className="main" ref={main}>
-        <div className="page" key={tab === 'me' ? `me-${meView}` : tab}>
+        <div className="page" key={tab === 'sport' ? `sport-${sportView}` : tab}>
           {tab === 'today' ? (
-            <Today
+            <Home
               onSession={() => setSessionOpen(true)}
               onSettings={() => setSettings(true)}
               onCheckin={() => setCheckin(true)}
+              onHead={() => setTab('head')}
               onFood={() => {
-                setMeView('food');
-                setTab('me');
+                setSportView('food');
+                setTab('sport');
               }}
             />
           ) : null}
-          {tab === 'programme' ? <Programme onSession={() => setSessionOpen(true)} /> : null}
-          {tab === 'me' ? <Me view={meView} onView={setMeView} onSettings={() => setSettings(true)} onEntry={() => setEntry(true)} /> : null}
+          {tab === 'head' ? <Head /> : null}
+          {tab === 'life' ? <Life onSettings={() => setSettings(true)} /> : null}
+          {tab === 'sport' ? <Sport view={sportView} onView={setSportView} onSession={() => setSessionOpen(true)} onEntry={() => setEntry(true)} /> : null}
         </div>
       </main>
-      <nav className="tabs" aria-label="Navigation" style={{ '--i': TABS.findIndex((t) => t.id === tab) } as React.CSSProperties}>
+      <button type="button" className="fab" onClick={() => setCapture(true)} aria-label="Dicter une note">
+        <IconMic size={26} />
+      </button>
+      <nav className="tabs" aria-label="Navigation" style={{ '--i': TABS.findIndex((t) => t.id === tab), '--n': TABS.length } as React.CSSProperties}>
         <i className="tabs-pill" aria-hidden="true" />
         {TABS.map(({ id, label, Icon }) => (
           <button
@@ -117,8 +123,7 @@ export function App() {
             className={tab === id ? 'on' : ''}
             aria-current={tab === id ? 'page' : undefined}
             onClick={() => {
-              if (tab === id && id === 'me' && meView) setMeView(null);
-              else if (tab === id) main.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              if (tab === id) main.current?.scrollTo({ top: 0, behavior: 'smooth' });
               setTab(id);
             }}
           >
@@ -127,6 +132,7 @@ export function App() {
           </button>
         ))}
       </nav>
+      <Capture open={capture} onClose={closeCapture} />
       <Checkin date={today} open={checkin} onClose={() => setCheckin(false)} />
       <DayEntry today={today} open={entry} onClose={() => setEntry(false)} />
       <Settings open={settings} onClose={() => setSettings(false)} />

@@ -1,5 +1,6 @@
 import type { DayLog, LoggedSet, PlannedExercise, Profile, SessionKey, SessionLog } from '../core/types';
 import { addDays, todayISO } from '../core/dates';
+import type { Note, Todo, WorkDay } from '../core/head';
 import { buildSession } from '../core/program';
 import { EXERCISES } from '../data/exercises';
 
@@ -108,4 +109,28 @@ export function previewSessions(): Record<string, SessionLog> {
     };
   }
   return out;
+}
+
+/** Sample notes, to-do and work for the ?rich preview. */
+export function previewHead(): { notes: Record<string, Note>; todos: Record<string, Todo>; work: Record<string, WorkDay> } {
+  const today = todayISO();
+  const now = Date.now();
+  const h = 3_600_000;
+  const t = (id: string, title: string, project: Todo['project'], extra: Partial<Todo> = {}): Todo => ({ id, title, project, kind: 'task', steps: [], createdAt: now - 5 * h, updatedAt: now - 5 * h, ...extra });
+  const todos = [
+    t('t1', 'Répondre aux 3 prospects', 'biz', { day: today, doneAt: now - 2 * h }),
+    t('t2', 'Réviser droit, chapitre 4', 'ecole', { day: today, minutes: 20, steps: [{ text: 'Relire la fiche' }, { text: 'Faire les 6 questions flash' }, { text: 'Expliquer à voix haute' }] }),
+    t('t3', 'Rappeler le prof pour le stage', 'ecole', { due: addDays(today, 2) }),
+    t('t4', 'Monter la vidéo « 3 erreurs »', 'biz', { steps: [{ text: 'Écrire l\'accroche', done: true }, { text: 'Tourner' }, { text: 'Monter' }] }),
+    t('t5', 'Relancer les partenaires hôtels', 'biz'),
+    t('t6', 'Acheter des œufs', 'perso'),
+    { ...t('i1', 'Vidéo sur les erreurs de réservation', 'biz'), kind: 'idea' as const },
+    { ...t('i2', 'Tester la pec press haut de pec', 'salle'), kind: 'idea' as const },
+  ];
+  const notes: Note[] = [
+    { id: `${today}-a`, text: 'Idée pour ma boîte : une vidéo sur les erreurs de réservation. Et faut que je rappelle le prof pour le stage avant vendredi. Là je suis un peu cramé, genre 5 sur 10.', at: now - 3 * h, date: today, source: 'app', status: 'done', summary: 'Une idée, une tâche et ta forme.', made: ['Idée : Vidéo sur les erreurs de réservation', 'Tâche : Rappeler le prof pour le stage', 'Forme · énergie 5/10'], updatedAt: now - 3 * h },
+    { id: `${today}-b`, text: 'J\'ai mangé ma crème de riz à 14 h, séance à 14 h 40, grosse énergie.', at: now - h, date: today, source: 'app', status: 'pending', updatedAt: now - h },
+  ];
+  const work: WorkDay = { date: today, blocks: [{ project: 'biz', start: now - 4 * h, end: now - 2.5 * h, source: 'lockin' }, { project: 'ecole', start: now - 2 * h, end: now - 1.6 * h, source: 'lockin' }], updatedAt: now };
+  return { notes: Object.fromEntries(notes.map((n) => [n.id, n])), todos: Object.fromEntries(todos.map((x) => [x.id, x])), work: { [today]: work } };
 }
