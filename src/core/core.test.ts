@@ -143,7 +143,7 @@ describe('program', () => {
 
   it('builds the muscle-building week he chose, with a lighter first week', () => {
     const week = buildWeek(0, 2);
-    expect(week.map(hardSets)).toEqual([30, 20, 19, 23, 16]);
+    expect(week.map(hardSets)).toEqual([29, 20, 19, 23, 16]);
     for (const s of week) for (const e of s.exercises) expect(EXERCISES[e.exId], e.exId).toBeDefined();
     expect(week.flatMap((s) => s.exercises).filter((e) => e.exId === 'mollets')).toHaveLength(0);
     const light = buildSession(0, 1, 'tue');

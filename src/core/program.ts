@@ -334,11 +334,11 @@ export const DEFAULT_MUSCU: Record<'tue' | 'wed' | 'fri' | 'sat' | 'sun', DayPla
       slot('elevMachine', 3, 6, 9, { group: 'a', rpe: FAIL }),
       slot('avantEpaule', 3, 6, 9, { group: 'a' }),
       slot('pecPress', 3, 6, 9),
+      slot('bayesian', 3, 6, 9),
       slot('pecFly', 3, 6, 9),
-      slot('curlIncline', 3, 6, 9),
       slot('curlPoulie', 3, 6, 9, { group: 'b', note: 'Prise serrée : mains à la largeur des hanches.' }),
       slot('abdosPoulie', 3, 10, 15, { group: 'b' }),
-      slot('legExt', 3, 6, 9, { note: 'Rappel quadri.' }),
+      slot('legExt', 2, 6, 9, { rpe: 7.5, note: "Rappel quadri : arrête-toi à 2 ou 3 reps de l'échec, pour garder tes jambes fraîches le vendredi." }),
     ],
   },
   wed: {
