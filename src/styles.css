@@ -3086,7 +3086,8 @@ details textarea {
 }
 
 .ed-row.ss {
-  border-left: 3px solid var(--sky);
+  background: rgba(143, 176, 255, 0.09);
+  border-color: rgba(143, 176, 255, 0.42);
 }
 
 .ed-row.lifted {
