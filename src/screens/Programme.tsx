@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { activeSession, beginSession, doneSessions, useApp } from '../state/store';
 import { DAY_LABEL, dayKey, shortDate, type ISODate } from '../core/dates';
-import { buildSession, estimateMinutes, hardSets, locate, planRows, SESSION_KEYS, weekDates, type PlanRow } from '../core/program';
+import { buildSession, estimateMinutes, hardSets, locate, MUSCU_KEYS, planRows, SESSION_KEYS, weekDates, type PlanRow } from '../core/program';
 import { effortText, plural, repsText, SET_LABEL } from '../core/labels';
-import { lastBest } from '../core/session';
+import { lastBest, liftOf } from '../core/session';
 import type { LiftKey, PlannedExercise, PlannedSession, SessionKey, SessionLog } from '../core/types';
 import { EXERCISES } from '../data/exercises';
 import { kg, Segmented } from '../ui/controls';
@@ -26,21 +26,37 @@ export function Programme({ onSession }: { onSession(): void }) {
   const here = locate(today, p.programStart, p.moves);
   const [block, setBlock] = useState(here?.block ?? 1);
   const [week, setWeek] = useState(here?.blockWeek ?? 1);
-  const [open, setOpen] = useState<SessionKey | null>(here?.key ?? 'mon');
+  const [open, setOpen] = useState<SessionKey | null>(here?.key ?? 'tue');
   const [legend, setLegend] = useState(false);
   const active = activeSession(data);
+  const muscu = block === 0;
   const days = weekDates(p.programStart, block, week).map((date) => ({ date, key: locate(date, p.programStart, p.moves)?.key ?? null }));
-  const skipped = SESSION_KEYS.filter((k) => !days.some((d) => d.key === k));
+  const skipped = (muscu ? MUSCU_KEYS : SESSION_KEYS).filter((k) => !days.some((d) => d.key === k));
 
   return (
     <div className="screen">
       <header className="head">
         <div>
-          <p>6 séances, jeudi off</p>
+          <p>{muscu ? '5 séances, lundi et jeudi off' : '6 séances, jeudi off'}</p>
           <h1>Programme</h1>
         </div>
       </header>
 
+      {muscu ? (
+        <div className="block-nav">
+          <button type="button" className="round" disabled={week <= 1} onClick={() => setWeek(week - 1)} aria-label="Semaine précédente">
+            <span className="flip">
+              <IconChevron size={18} />
+            </span>
+          </button>
+          <strong>Semaine {week}</strong>
+          <button type="button" className="round" onClick={() => setWeek(week + 1)} aria-label="Semaine suivante">
+            <IconChevron size={18} />
+          </button>
+        </div>
+      ) : null}
+
+      {muscu ? null : (
       <div className="block-nav">
         <button type="button" className="round" disabled={block <= 1} onClick={() => setBlock(block - 1)} aria-label="Bloc précédent">
           <span className="flip">
@@ -52,12 +68,13 @@ export function Programme({ onSession }: { onSession(): void }) {
           <IconChevron size={18} />
         </button>
       </div>
-      <Segmented<number> label="Semaine" value={week} onPick={setWeek} options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: `S${n}` }))} />
+      )}
+      {muscu ? null : <Segmented<number> label="Semaine" value={week} onPick={setWeek} options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: `S${n}` }))} />}
 
       <button type="button" className="legend-toggle" aria-expanded={legend} onClick={() => setLegend(!legend)}>
         Comment lire le programme
       </button>
-      {legend ? <Legend /> : null}
+      {legend ? <Legend muscu={muscu} /> : null}
 
       <ol className="days">
         {days.map(({ date, key }) => {
@@ -160,7 +177,7 @@ function blocks(list: PlannedExercise[]): PlannedExercise[][] {
 function rowsOf(e: PlannedExercise, tm: Record<LiftKey, number>, history: SessionLog[]) {
   const rows = planRows(e, tm);
   const accessory = rows.every((r) => r.type === 'acc');
-  const last = accessory ? lastBest(e.exId, history) : undefined;
+  const last = accessory ? lastBest(e.exId, history, !!liftOf(e.exId)) : undefined;
   const heavy = rows.find((r) => r.type === 'top' || r.type === 'test') ?? rows.find((r) => r.type === 'work' || r.type === 'acc');
   const effort = accessory && heavy?.rpe !== undefined ? effortText(heavy.rpe) : undefined;
   const loadText = (r: PlanRow) => (r.load !== undefined ? `${kg(r.load)} kg` : last ? `${kg(last.load)} kg` : 'Charge à trouver');
@@ -236,7 +253,29 @@ function Superset({ members, tm, history }: { members: PlannedExercise[]; tm: Re
   );
 }
 
-function Legend() {
+function Legend({ muscu }: { muscu: boolean }) {
+  if (muscu) {
+    return (
+      <dl className="card legend">
+        <div>
+          <dt>3 × 6-9</dt>
+          <dd>3 séries de 6 à 9 répétitions. Dès que tu en fais 10, tu montes la charge.</dd>
+        </div>
+        <div>
+          <dt>Superset</dt>
+          <dd>Une série de chaque exercice à la suite, puis le repos.</dd>
+        </div>
+        <div>
+          <dt>À l'échec</dt>
+          <dd>Tu vas jusqu'à ne plus pouvoir faire une rep propre. C'est le cas des élévations latérales.</dd>
+        </div>
+        <div>
+          <dt>Il reste 1 rep</dt>
+          <dd>À la fin de la série, tu aurais pu en faire 1 de plus.</dd>
+        </div>
+      </dl>
+    );
+  }
   return (
     <dl className="card legend">
       <div>

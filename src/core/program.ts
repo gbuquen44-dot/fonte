@@ -10,8 +10,18 @@ export interface Located {
   key: SessionKey | null;
 }
 
-/** Where a date falls in the program. Weeks start on Monday, Thursday is off, and a moved day wins. */
+/** First Monday of the muscle-building program. Before it, the powerlifting blocks still describe his past weeks. */
+export const MUSCU_START: ISODate = '2026-11-23';
+
+/** Where a date falls in the program. Weeks start on Monday and a moved day wins. In the powerlifting blocks Thursday is off; in the muscle-building program, Monday and Thursday. Muscle-building weeks carry block 0. */
 export function locate(date: ISODate, programStart: ISODate, moves?: Profile['moves']): Located | null {
+  if (date >= MUSCU_START) {
+    const week = Math.floor(diffDays(date, MUSCU_START) / 7) + 1;
+    const moved = moves?.[date];
+    const k = dayKey(date);
+    const key = moved ? (moved === 'off' || !MUSCU[moved] ? null : moved) : k === 'mon' || k === 'thu' ? null : k;
+    return { week, block: 0, blockWeek: week, key };
+  }
   const d = diffDays(date, mondayOf(programStart));
   if (d < 0) return null;
   const week = Math.floor(d / 7) + 1;
@@ -26,6 +36,7 @@ export function locate(date: ISODate, programStart: ISODate, moves?: Profile['mo
 const OFFSET: Record<SessionKey, number> = { mon: 0, tue: 1, wed: 2, fri: 4, sat: 5, sun: 6 };
 
 export function dateOfSession(programStart: ISODate, block: number, blockWeek: number, key: SessionKey): ISODate {
+  if (block === 0) return addDays(MUSCU_START, (blockWeek - 1) * 7 + OFFSET[key]);
   return addDays(mondayOf(programStart), ((block - 1) * 5 + blockWeek - 1) * 7 + OFFSET[key]);
 }
 
@@ -50,6 +61,14 @@ function repsToFailure(pct: number): number {
 
 /** The chart's RPE for these reps at this % of the max, unrounded. */
 export const exactRpe = (reps: number, pct: number) => 10 - (repsToFailure(pct) - reps);
+
+/** The % of the max that leaves this many reps before failure, read off the same chart. */
+export function pctForRepsToFailure(n: number): number {
+  if (n <= 1) return 100;
+  const i = Math.floor(n);
+  if (i >= FAILURE.length) return FAILURE[FAILURE.length - 1] - (n - FAILURE.length) * 2.7;
+  return FAILURE[i - 1] - (n - i) * (FAILURE[i - 1] - FAILURE[i]);
+}
 
 /** The chart's RPE for these reps at this load, to the half point. */
 export function chartRpe(reps: number, pct: number): number {
@@ -298,14 +317,132 @@ function sunday(block: number, week: number): PlannedSession {
 
 const SESSIONS: Record<SessionKey, (block: number, week: number) => PlannedSession> = { mon: monday, tue: tuesday, wed: wednesday, fri: friday, sat: saturday, sun: sunday };
 
+/* The muscle-building program he built on 24 November 2026: 6 to 9 reps, more load as soon as he reaches 10. */
+
+type Draft = Omit<PlannedSession, 'block' | 'week'>;
+
+/** He goes to failure on lateral raises. */
+const FAIL = 10;
+
+function devant(): Draft {
+  return {
+    key: 'tue',
+    title: 'Devant',
+    subtitle: 'Pecs, épaules, biceps, rappel quadri',
+    exercises: [
+      acc('benchHalteres', 3, 6, 9),
+      acc('dmMachine', 3, 6, 9),
+      acc('elevMachine', 3, 6, 9, { group: 'a', rpe: FAIL }),
+      acc('avantEpaule', 2, 6, 9, { group: 'a' }),
+      acc('pecPress', 2, 6, 9),
+      acc('pecFly', 3, 6, 9),
+      acc('curlIncline', 3, 6, 9),
+      acc('curlPoulie', 3, 6, 9, { group: 'b', note: 'Prise serrée : mains à la largeur des hanches.' }),
+      acc('abdosPoulie', 3, 10, 15, { group: 'b' }),
+      acc('legExt', 3, 6, 9, { note: 'Rappel quadri.' }),
+    ],
+  };
+}
+
+function derriere(): Draft {
+  return {
+    key: 'wed',
+    title: 'Derrière',
+    subtitle: 'Dos, triceps, arrière d\'épaule, rappel ischios',
+    exercises: [
+      acc('tirageNeutre', 2, 6, 9),
+      acc('dipsMachine', 2, 6, 9),
+      acc('tirageHNeutre', 2, 6, 9, { note: 'Prise serrée.' }),
+      acc('extOverhead', 2, 6, 9, { note: 'Avec la barre en V.' }),
+      acc('extUni', 2, 6, 9),
+      acc('facePull', 2, 6, 9, { group: 'a' }),
+      acc('elevHalteres', 2, 6, 9, { group: 'a', rpe: FAIL }),
+      acc('legCurlAllonge', 3, 6, 9, { note: 'Rappel ischios.' }),
+      acc('lombaires', 3, 10, 15),
+    ],
+  };
+}
+
+function jambes(): Draft {
+  return {
+    key: 'fri',
+    title: 'Jambes',
+    subtitle: 'Quadriceps d\'abord, ischios, fessiers',
+    exercises: [
+      acc('squat', 4, 6, 8, { rpe: 8 }),
+      acc('pendulum', 3, 6, 9),
+      acc('rdl', 3, 6, 9, { rpe: 8.5 }),
+      acc('legExt', 3, 6, 9),
+      acc('abduction', 3, 10, 15),
+      acc('abdos', 3, 10, 15),
+    ],
+  };
+}
+
+function pushA(): Draft {
+  return {
+    key: 'sat',
+    title: 'Push A',
+    subtitle: 'Pecs, épaules, triceps',
+    exercises: [
+      acc('bench', 4, 6, 9, { note: 'On s\'arrache.' }),
+      acc('dmHalteres', 3, 6, 9),
+      acc('smithIncline', 3, 6, 9),
+      acc('pecFly', 2, 6, 9),
+      acc('extCorde', 2, 6, 9, { group: 'a' }),
+      acc('oiseau', 2, 6, 9, { group: 'a' }),
+      acc('elevMachine', 3, 6, 9, { group: 'b', rpe: FAIL }),
+      acc('avantEpaule', 2, 6, 9, { group: 'b' }),
+      acc('barreFront', 2, 6, 9),
+    ],
+  };
+}
+
+function pullA(): Draft {
+  return {
+    key: 'sun',
+    title: 'Pull A',
+    subtitle: 'Dos, biceps',
+    exercises: [
+      acc('tractions', 2, 6, 6, { max: true, note: 'Une série d\'échauffement avant.' }),
+      acc('tirageLarge', 2, 6, 9),
+      acc('tirageHUni', 2, 6, 9),
+      acc('marteau', 2, 6, 9, { group: 'a' }),
+      acc('elevHalteres', 2, 6, 9, { group: 'a', rpe: FAIL, note: 'Unilatérale, main sur un banc.' }),
+      acc('bayesian', 2, 6, 9),
+      acc('tirageHaut', 2, 6, 9),
+      acc('pupitre', 2, 6, 9),
+    ],
+  };
+}
+
+const MUSCU: Partial<Record<SessionKey, () => Draft>> = { tue: devant, wed: derriere, fri: jambes, sat: pushA, sun: pullA };
+
+export const MUSCU_KEYS: SessionKey[] = ['tue', 'wed', 'fri', 'sat', 'sun'];
+
+/** The first week ends his deload: one set less everywhere, two or three reps in reserve. */
+const LIGHT_WEEK = 1;
+
+function muscuSession(week: number, key: SessionKey): PlannedSession {
+  const draft = (MUSCU[key] ?? devant)();
+  if (week !== LIGHT_WEEK) return { ...draft, block: 0, week };
+  return {
+    ...draft,
+    block: 0,
+    week,
+    subtitle: `Semaine légère : une série de moins, 2 à 3 reps en réserve. ${draft.subtitle}`,
+    exercises: draft.exercises.map((e) => ({ ...e, sets: e.sets.slice(0, Math.max(1, e.sets.length - 1)).map((x) => ({ ...x, rpe: Math.min(x.rpe ?? 8, 7.5) })) })),
+  };
+}
+
 export function buildSession(block: number, week: number, key: SessionKey): PlannedSession {
-  return SESSIONS[key](block, week);
+  return block === 0 ? muscuSession(week, key) : SESSIONS[key](block, week);
 }
 
 export const SESSION_KEYS: SessionKey[] = ['mon', 'tue', 'wed', 'fri', 'sat', 'sun'];
 
 export function buildWeek(block: number, week: number): PlannedSession[] {
-  return SESSION_KEYS.map((k) => buildSession(block, week, k));
+  return (block === 0 ? MUSCU_KEYS : SESSION_KEYS).map((k) => buildSession(block, week, k));
 }
 
 /** Sets that count as hard work, ramps excluded. */

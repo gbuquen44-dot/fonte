@@ -1,7 +1,7 @@
 import type { EquipKind, LiftKey, LoggedSet, PlannedExercise, PlannedSession, PlannedSet, PostCheck, Scheme, SessionLog } from './types';
 import { EXERCISES } from '../data/exercises';
 import { detectPRs, floorLoad, roundLoad } from './lifting';
-import { exactRpe } from './program';
+import { exactRpe, pctForRepsToFailure } from './program';
 import type { ISODate } from './dates';
 
 export interface Step {
@@ -87,17 +87,20 @@ export interface Prefill {
 
 const START_LOAD: Record<EquipKind, number> = { barbell: 40, smith: 40, machine: 30, cable: 20, dumbbell: 12, bodyweight: 0 };
 
-function lastSetsOf(exId: string, history: SessionLog[]): LoggedSet[] {
+/** A squat or a bench done as an accessory only looks back at accessory sets: his old heavy singles would pick a load he cannot do for 6 reps. */
+function lastSetsOf(exId: string, history: SessionLog[], accOnly = false): LoggedSet[] {
   const sorted = [...history].sort((a, b) => b.startedAt - a.startedAt);
   for (const h of sorted) {
-    const sets = h.sets.filter((x) => x.exId === exId && !x.failed && x.type !== 'ramp');
+    const sets = h.sets.filter((x) => x.exId === exId && !x.failed && x.type !== 'ramp' && (!accOnly || x.type === 'acc'));
     if (sets.length) return sets;
   }
   return [];
 }
 
-export function lastBest(exId: string, history: SessionLog[]): LoggedSet | undefined {
-  const sets = lastSetsOf(exId, history);
+export const liftOf = (exId: string): LiftKey | undefined => EXERCISES[exId]?.lift ?? EXERCISES[exId]?.tm;
+
+export function lastBest(exId: string, history: SessionLog[], accOnly = false): LoggedSet | undefined {
+  const sets = lastSetsOf(exId, history, accOnly);
   return sets.length ? sets.reduce((a, b) => (b.load * (1 + b.reps / 30) > a.load * (1 + a.reps / 30) ? b : a)) : undefined;
 }
 
@@ -126,11 +129,16 @@ export function prefill(s: SessionLog, st: Step, tm: Record<LiftKey, number>, hi
   }
 
   const here = s.sets.filter((x) => x.exId === ex.exId);
-  const last = lastSetsOf(ex.exId, history);
+  const lift = liftOf(ex.exId);
+  const last = lastSetsOf(ex.exId, history, !!lift);
   const top = ps.max ? Infinity : ps.repsMax ?? ps.reps;
   if (here.length) {
     const prev = here[here.length - 1];
     return { load: prev.load, reps: Math.min(prev.reps || ps.reps, top) };
+  }
+  if (!last.length && lift && tm[lift]) {
+    const pct = pctForRepsToFailure(ps.reps + 10 - (ps.rpe ?? 9));
+    return { load: roundLoad((tm[lift] * pct) / 100, 2.5), reps: ps.reps, first: true, hint: 'Charge estimée sur ton max : ajuste dès la première série.' };
   }
   if (!last.length) {
     const kind = def?.kind ?? 'machine';

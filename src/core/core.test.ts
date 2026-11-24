@@ -4,7 +4,7 @@ import { rirText } from './labels';
 import { describe, expect, it } from 'vitest';
 import { addDays, dayKey, diffDays, mondayOf } from './dates';
 import { attempts, detectPRs, e1rm, platesPerSide, roundLoad, rolling3 } from './lifting';
-import { buildSession, buildWeek, chartRpe, dateOfSession, estimateMinutes, hardSets, locate, plannedFor, planRows, SESSION_KEYS, weekDates } from './program';
+import { buildSession, buildWeek, chartRpe, dateOfSession, estimateMinutes, hardSets, locate, MUSCU_START, pctForRepsToFailure, plannedFor, planRows, SESSION_KEYS, weekDates } from './program';
 import { EXERCISES } from '../data/exercises';
 import {
   addSet,
@@ -120,10 +120,40 @@ describe('program', () => {
     expect(locate('2026-11-05', '2026-11-02')?.key).toBeNull();
     expect(locate('2026-11-08', '2026-11-02')).toMatchObject({ week: 1, key: 'sun' });
     expect(locate('2026-11-09', '2026-11-02')).toMatchObject({ week: 2, key: 'mon' });
-    expect(locate('2026-12-07', '2026-11-02')).toMatchObject({ week: 6, block: 2, blockWeek: 1 });
+    expect(locate('2026-11-16', '2026-11-02')).toMatchObject({ week: 3, block: 1, blockWeek: 3, key: 'mon' });
     expect(dateOfSession('2026-11-02', 1, 5, 'sun')).toBe('2026-12-06');
     expect(dateOfSession('2026-11-02', 3, 5, 'mon')).toBe('2027-02-08');
     expect(weekDates('2026-11-03', 1, 2)).toEqual(['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15']);
+  });
+
+  it('switches to the muscle-building program on 23 November, Monday and Thursday off', () => {
+    expect(MUSCU_START).toBe('2026-11-23');
+    expect(locate('2026-11-22', '2026-11-02')).toMatchObject({ block: 1, key: 'sun' });
+    expect(locate('2026-11-23', '2026-11-02')).toMatchObject({ block: 0, week: 1, key: null });
+    expect(locate('2026-11-26', '2026-11-02')?.key).toBeNull();
+    expect(locate('2026-12-01', '2026-11-02')).toMatchObject({ block: 0, week: 2, key: 'tue' });
+    expect(plannedFor('2026-12-01', { programStart: '2026-11-02' })?.title).toBe('Devant');
+    expect(plannedFor('2026-12-06', { programStart: '2026-11-02' })?.title).toBe('Pull A');
+    expect(weekDates('2026-11-02', 0, 2)[0]).toBe('2026-11-30');
+    expect(dateOfSession('2026-11-02', 0, 2, 'fri')).toBe('2026-12-04');
+    expect(buildWeek(0, 2).map((s) => s.title)).toEqual(['Devant', 'Derrière', 'Jambes', 'Push A', 'Pull A']);
+  });
+
+  it('builds the muscle-building week he chose, with a lighter first week', () => {
+    const week = buildWeek(0, 2);
+    expect(week.map(hardSets)).toEqual([28, 20, 19, 23, 16]);
+    for (const s of week) for (const e of s.exercises) expect(EXERCISES[e.exId], e.exId).toBeDefined();
+    expect(week.flatMap((s) => s.exercises).filter((e) => e.exId === 'mollets')).toHaveLength(0);
+    const light = buildSession(0, 1, 'tue');
+    expect(hardSets(light)).toBeLessThan(hardSets(week[0]));
+    expect(light.exercises.every((e) => e.sets.length >= 1 && e.sets.every((x) => (x.rpe ?? 0) <= 7.5))).toBe(true);
+    expect(locate('2026-12-01', '2026-11-02', { '2026-12-01': 'mon' })?.key).toBeNull();
+  });
+
+  it('reads the chart backwards', () => {
+    expect(pctForRepsToFailure(1)).toBe(100);
+    expect(pctForRepsToFailure(10)).toBeCloseTo(73.9);
+    expect(pctForRepsToFailure(9.5)).toBeCloseTo(75.05);
   });
 
   it('follows a moved day', () => {
@@ -800,5 +830,17 @@ describe('weight', () => {
     expect(r.verdict).toBe('down');
     expect(trendRead(w, '2026-11-07', 7).verdict).toBeUndefined();
     expect(trendRead([{ date: '2026-11-01', weight: 67.5 }, { date: '2026-11-04', weight: 67.6 }], '2026-11-04', 3).verdict).toBe('flat');
+  });
+});
+
+describe('muscle-building loads', () => {
+  it('starts squat and bench from the max, not from his old heavy singles', () => {
+    const s = createSession(buildSession(0, 2, 'fri'), '2026-12-04', 'm1', 0);
+    const old = createSession(buildSession(1, 3, 'fri'), '2026-11-20', 'o1', 0);
+    const heavy = logSet(old, { ex: 0, set: 4 }, { load: 125, reps: 1 }, 1);
+    const first = prefill(s, { ex: 0, set: 0 }, TM, [{ ...heavy, status: 'done' }]);
+    expect(first.load).toBeLessThan(110);
+    expect(first.load).toBeGreaterThan(90);
+    expect(first.first).toBe(true);
   });
 });
