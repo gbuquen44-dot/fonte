@@ -1,47 +1,63 @@
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/inter.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Sora Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url('./fonts/sora.woff2') format('woff2-variations');
+}
+
 :root {
   color-scheme: dark;
   /* Lock-in: a warm dark grey, soft text, one red. Kind to the eyes all day. */
-  --night: #1a1c1f;
-  --ink: #e6e3dc;
-  --ink-2: #a9acb1;
-  --ink-3: #8a8e93;
+  --night: #141517;
+  --ink: #ece9e3;
+  --ink-2: #9a9ea4;
+  --ink-3: #6c7076;
   --mint: #ef5d5d;
   --mint-ink: #2a0b0b;
   --red-tint: #321f20;
   --red-line: #552b2c;
-  --good: #93c4a8;
+  --good: #8fb8a0;
   --sky: #8e9aae;
   --amber: #d9b26f;
   --rose: #f28b82;
   --c-squat: #6fae8f;
   --c-bench: #8e9aae;
   --c-dead: #c9a15c;
-  --hair: #2e3236;
+  --hair: #26292d;
   /* One colour per project: Business red, École blue, Salle green, Perso amber. */
   --biz: #ef5d5d;
-  --biz-tint: #321f20;
-  --biz-ink: #f2a3a3;
-  --ecole: #7fa7e8;
+  --biz-tint: #3a2224;
+  --biz-ink: #ef8f8f;
+  --ecole: #7d9cd4;
   --ecole-tint: #1f2633;
-  --ecole-ink: #a7bde6;
-  --salle: #93c4a8;
+  --ecole-ink: #a9bde3;
+  --salle: #8fb8a0;
   --salle-tint: #1f2a24;
-  --salle-ink: #b5d6c3;
-  --perso: #e3b36a;
+  --salle-ink: #a6cbb5;
+  --perso: #cfae74;
   --perso-tint: #2e2819;
   --perso-ink: #e9c98f;
-  --glass: #222529;
-  --glass-2: #2b2f34;
-  --float: rgba(26, 28, 31, 0.96);
+  --glass: #1c1e21;
+  --glass-2: #24272b;
+  --float: rgba(20, 21, 23, 0.94);
   --r-xl: 28px;
-  --r-l: 22px;
+  --r-l: 18px;
   --r-m: 16px;
   --r-s: 12px;
   --gutter: 16px;
   --spring: cubic-bezier(0.32, 0.72, 0, 1);
   --pop: cubic-bezier(0.2, 0.9, 0.25, 1.15);
-  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --round: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Arial, sans-serif;
+  --font: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --round: 'Sora Variable', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Arial, sans-serif;
   --top: max(env(safe-area-inset-top), 14px);
   --bottom: max(env(safe-area-inset-bottom), 12px);
 }
@@ -315,10 +331,11 @@ code {
 }
 
 .head h1 {
-  font-size: 34px;
+  font-family: var(--round);
+  font-size: 30px;
   line-height: 1.12;
-  font-weight: 700;
-  letter-spacing: -0.022em;
+  font-weight: 600;
+  letter-spacing: -0.035em;
 }
 
 .round {
@@ -3947,7 +3964,7 @@ details textarea {
   padding-top: 10px;
 }
 
-/* Tiles: the home screen and the projects of Tête, everything at a glance */
+/* Tiles: the home screen and the projects of Tête. Sober cards, colour in the data and the glyphs. */
 
 .pc-biz { --pc: var(--biz); --pc-tint: var(--biz-tint); --pc-ink: var(--biz-ink); }
 .pc-ecole { --pc: var(--ecole); --pc-tint: var(--ecole-tint); --pc-ink: var(--ecole-ink); }
@@ -3960,152 +3977,234 @@ details textarea {
   gap: 10px;
 }
 
+.tiles > * {
+  animation: rise 0.5s var(--spring) both;
+}
+
+.tiles > :nth-child(2) { animation-delay: 0.04s; }
+.tiles > :nth-child(3) { animation-delay: 0.08s; }
+.tiles > :nth-child(4) { animation-delay: 0.12s; }
+.tiles > :nth-child(5) { animation-delay: 0.16s; }
+.tiles > :nth-child(6) { animation-delay: 0.2s; }
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
 .tile {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
-  min-height: 132px;
+  min-height: 128px;
   padding: 14px 16px;
   text-align: left;
   background: var(--glass);
   border: 1px solid var(--hair);
-  border-radius: 24px;
+  border-radius: 18px;
   color: var(--ink);
-  transition: transform 0.16s var(--spring);
+  transition: transform 0.2s var(--spring), border-color 0.2s;
 }
 
 button.tile:active,
 .project-tile:active {
-  transform: scale(0.97);
+  transform: scale(0.975);
 }
 
 .tile.span-2 {
   grid-column: span 2;
 }
 
-.tile-label {
-  font-size: 13px;
-  font-weight: 600;
+.tile-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
   color: var(--ink-2);
 }
 
-.tile-tag {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
+.tile-ic {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--pc-tint);
+  color: var(--pc);
 }
 
-.tile-tag.good {
-  color: var(--good);
+.tile-ic.big {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
 }
 
 .tile-big {
+  margin-top: 8px;
   font-size: 28px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
 }
 
 .tile-big small {
-  font-size: 14px;
-  font-weight: 600;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
   color: var(--ink-3);
   letter-spacing: 0;
 }
 
 .tile-big.add {
-  color: var(--mint);
+  font-family: var(--round);
   font-size: 22px;
+  color: var(--mint);
+}
+
+.tile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .tile-foot {
   margin-top: auto;
+  padding-top: 6px;
   font-size: 12px;
   line-height: 1.3;
   color: var(--ink-2);
 }
 
-.tile-foot.good {
-  color: var(--good);
-}
-
-.clamp {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+.ellipsis {
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bar {
   display: block;
-  height: 8px;
-  border-radius: 4px;
+  height: 4px;
+  border-radius: 2px;
   background: var(--hair);
   overflow: hidden;
-  margin: 8px 0 6px;
+  margin-top: 10px;
 }
 
 .bar i {
   display: block;
   height: 100%;
-  border-radius: 4px;
+  border-radius: 2px;
   background: var(--mint);
-  transition: width 0.5s var(--spring);
+  transition: width 0.6s var(--spring);
+}
+
+.bar.amber {
+  background: #2e2a22;
 }
 
 .bar.amber i {
   background: var(--perso);
 }
 
-.mini-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--ink-2);
+.bar.pc {
+  background: color-mix(in srgb, var(--pc) 16%, var(--glass));
 }
 
-.mini-bar .bar {
-  flex: 1;
-  height: 6px;
-  margin: 0;
+.bar.pc i {
+  background: var(--pc);
+}
+
+.ring {
+  flex: none;
+  transform: rotate(-90deg);
+  margin-top: 6px;
+}
+
+.ring circle {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.ring-bg {
+  stroke: #2e2325;
+}
+
+.ring-fg {
+  stroke: var(--mint);
+  transition: stroke-dasharray 0.6s var(--spring);
 }
 
 .spark {
   width: 100%;
-  height: 40px;
-  margin: 4px 0;
+  height: 30px;
+  margin-top: 6px;
   overflow: visible;
 }
 
+.spark polygon {
+  fill: var(--salle);
+  fill-opacity: 0.14;
+}
+
 .spark polyline {
-  stroke: var(--good);
-  stroke-width: 2.5;
+  fill: none;
+  stroke: var(--salle);
+  stroke-width: 1.8;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
-.spark circle {
-  fill: var(--good);
-}
-
 .spark-empty {
-  height: 40px;
+  height: 30px;
 }
 
-/* The red Lock-in tile */
+.nights {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 16px;
+  margin-top: 8px;
+}
+
+.nights i {
+  flex: 1;
+  border-radius: 2px;
+  background: #33405a;
+}
+
+.nights i.none {
+  background: var(--hair);
+}
+
+.nights i.last {
+  background: var(--ecole);
+}
+
+/* The Lock-in card */
 
 .lock-tile {
   gap: 14px;
   min-height: 0;
-  background: var(--mint);
-  border-color: var(--mint);
-  color: var(--mint-ink);
+  padding: 16px;
+  background: #221a1b;
+  border-color: #3a2627;
+}
+
+.lock-tile.running {
+  border-color: var(--red-line);
+  box-shadow: 0 0 0 1px rgba(239, 93, 93, 0.12), 0 12px 32px rgba(239, 93, 93, 0.08);
+}
+
+.lock-tile .tile-head {
+  color: #e9a3a3;
 }
 
 .lock-top {
@@ -4115,52 +4214,61 @@ button.tile:active,
   gap: 12px;
 }
 
-.lock-tile .tile-tag {
-  opacity: 0.8;
+.lock-big {
+  margin-top: 10px;
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.04em;
 }
 
-.lock-big {
-  margin-top: 2px;
-  font-size: 40px;
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+.lock-week {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #a98a8b;
 }
 
 .week-bars {
   display: flex;
   align-items: flex-end;
-  gap: 5px;
+  gap: 6px;
   flex: none;
 }
 
-.week-bars span {
+.week-bars > span {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
-.week-bars i {
+.week-bars .stack {
+  width: 7px;
+  height: 54px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+}
+
+.week-bars .stack i {
   display: block;
-  width: 13px;
-  border-radius: 5px;
-  background: var(--mint-ink);
-  opacity: 0.45;
+  border-radius: 3px;
+  background: var(--pc);
 }
 
-.week-bars .today i {
-  opacity: 1;
-}
-
-.week-bars .later i {
-  opacity: 0.18;
+.week-bars .stack i.empty {
+  height: 4px;
+  background: #3a2c2d;
 }
 
 .week-bars small {
-  font-size: 10px;
-  font-weight: 700;
-  opacity: 0.75;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #7a6061;
+}
+
+.week-bars .today small {
+  color: var(--ink);
 }
 
 .lock-acts {
@@ -4173,21 +4281,37 @@ button.tile:active,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 46px;
-  border-radius: 14px;
-  background: var(--mint-ink);
-  color: var(--mint);
-  font-size: 15px;
-  font-weight: 700;
-  transition: transform 0.16s var(--spring);
+  gap: 8px;
+  min-height: 42px;
+  border-radius: 12px;
+  background: #2a1f20;
+  border: 1px solid #3a2a2b;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: transform 0.16s var(--spring), background 0.2s;
 }
 
 .lock-act:active {
   transform: scale(0.95);
+  background: #332526;
 }
 
-/* The session tile */
+.lock-act.stop {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--mint-ink);
+  font-weight: 600;
+}
+
+.pdot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pc);
+}
+
+/* The session card */
 
 .session-tile {
   flex-direction: row;
@@ -4201,48 +4325,43 @@ button.tile:active,
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+}
+
+.session-tag {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--salle);
 }
 
 .session-name {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.chip-m {
-  font-size: 12px;
+  font-family: var(--round);
+  font-size: 19px;
   font-weight: 600;
-  border-radius: 9px;
-  padding: 4px 8px;
-  background: var(--salle-tint);
-  color: var(--salle-ink);
+  letter-spacing: -0.02em;
+}
+
+.session-main .tile-foot {
+  padding-top: 2px;
 }
 
 .play {
   flex: none;
-  width: 56px;
-  height: 56px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--good);
-  color: #14201a;
+  background: var(--salle);
+  color: #12201a;
   transition: transform 0.16s var(--spring);
 }
 
 .play:active {
-  transform: scale(0.92);
+  transform: scale(0.9);
 }
 
-/* Tête: one coloured tile per project */
+/* Tête: one card per project */
 
 .project-tiles {
   display: grid;
@@ -4254,57 +4373,69 @@ button.tile:active,
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
+  gap: 2px;
   min-width: 0;
-  min-height: 132px;
+  min-height: 128px;
   padding: 14px 16px;
   text-align: left;
-  border-radius: 24px;
-  border: 1px solid transparent;
-  background: var(--pc-tint);
+  border-radius: 18px;
+  border: 1px solid var(--hair);
+  background: var(--glass);
   color: var(--ink);
-  transition: transform 0.16s var(--spring), border-color 0.2s;
+  transition: transform 0.2s var(--spring), border-color 0.2s;
 }
 
 .project-tile.on {
-  border-color: var(--pc);
+  border-color: color-mix(in srgb, var(--pc) 60%, var(--hair));
 }
 
 .pt-name {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--pc-ink);
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.pt-name .tile-ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
 }
 
 .pt-count {
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1;
+  margin-top: 8px;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
 }
 
 .pt-count small {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--pc-ink);
-  opacity: 0.8;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+  letter-spacing: 0;
+}
+
+.project-tile .bar {
+  margin-top: 8px;
+  height: 3px;
 }
 
 .pt-next {
   margin-top: auto;
+  padding-top: 6px;
   font-size: 12px;
-  line-height: 1.3;
-  color: var(--pc-ink);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  color: var(--ink-2);
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card.picked {
-  border-color: var(--pc);
+  border-color: color-mix(in srgb, var(--pc) 50%, var(--hair));
 }
 
 .card.picked .eyebrow {
@@ -4314,13 +4445,20 @@ button.tile:active,
 .today-progress {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .today-progress .bar {
-  width: 72px;
-  height: 6px;
+  width: 64px;
+  height: 3px;
   margin: 0;
+}
+
+.todo[class*='pc-'] .todo-check input {
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  border-width: 1.5px;
 }
 
 .todo[class*='pc-'] .todo-check input:not(:checked) {
@@ -4330,4 +4468,29 @@ button.tile:active,
 .todo[class*='pc-'] .todo-check input:checked {
   background: var(--pc);
   border-color: var(--pc);
+}
+
+.todo-meta .ptag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--pc) 16%, var(--glass));
+  color: var(--pc-ink);
+}
+
+.glyph {
+  display: block;
+  flex: none;
+}
+
+.fab {
+  width: 54px;
+  height: 54px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tiles > * {
+    animation: none;
+  }
 }

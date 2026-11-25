@@ -9,7 +9,7 @@ import { SessionScreen } from './screens/Session';
 import { Checkin } from './screens/Checkin';
 import { Capture } from './screens/Capture';
 import { Settings, Setup } from './screens/Settings';
-import { IconList, IconMic, IconPulse, IconToday, IconWeight } from './ui/icons';
+import { GlyphBulb, GlyphDumbbell, GlyphHeart, GlyphMic, GlyphTiles } from './ui/glyphs';
 import { registerCustom } from './core/edit';
 import { setProjectNames } from './core/head';
 import { useToday } from './ui/hooks';
@@ -17,10 +17,10 @@ import { useToday } from './ui/hooks';
 type Tab = 'today' | 'head' | 'life' | 'sport';
 
 const TABS: { id: Tab; label: string; Icon: (p: { size?: number }) => React.ReactElement }[] = [
-  { id: 'today', label: 'Aujourd\'hui', Icon: IconToday },
-  { id: 'head', label: 'Tête', Icon: IconList },
-  { id: 'life', label: 'Vie', Icon: IconPulse },
-  { id: 'sport', label: 'Sport', Icon: IconWeight },
+  { id: 'today', label: 'Aujourd\'hui', Icon: GlyphTiles },
+  { id: 'head', label: 'Tête', Icon: GlyphBulb },
+  { id: 'life', label: 'Vie', Icon: GlyphHeart },
+  { id: 'sport', label: 'Sport', Icon: GlyphDumbbell },
 ];
 
 /** The home-screen shortcut opens the app on the dictation: …/fonte/#dicter */
@@ -112,7 +112,7 @@ export function App() {
         </div>
       </main>
       <button type="button" className="fab" onClick={() => setCapture(true)} aria-label="Dicter une note">
-        <IconMic size={26} />
+        <GlyphMic size={24} />
       </button>
       <nav className="tabs" aria-label="Navigation" style={{ '--i': TABS.findIndex((t) => t.id === tab), '--n': TABS.length } as React.CSSProperties}>
         <i className="tabs-pill" aria-hidden="true" />
@@ -127,7 +127,7 @@ export function App() {
               setTab(id);
             }}
           >
-            <Icon size={23} />
+            <Icon size={22} />
             <span>{label}</span>
           </button>
         ))}

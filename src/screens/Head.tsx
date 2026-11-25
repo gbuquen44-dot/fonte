@@ -5,6 +5,7 @@ import { byProject, formatMinutes, PROJECT_LABEL, PROJECT_SHORT, PROJECTS, today
 import { Segmented } from '../ui/controls';
 import { IconChevron } from '../ui/icons';
 import { useToday } from '../ui/hooks';
+import { PROJECT_GLYPH } from '../ui/glyphs';
 
 export const startOf = (date: ISODate) => new Date(`${date}T00:00:00`).getTime();
 
@@ -29,7 +30,7 @@ export function TodoRow({ t, today, pinned }: { t: Todo; today: ISODate; pinned?
         <button type="button" className="todo-main" onClick={() => setOpen(!open)} aria-expanded={open}>
           <span className="todo-title">{t.title}</span>
           <span className="todo-meta">
-            {pinned ? <span>{PROJECT_SHORT[t.project]}</span> : null}
+            {pinned ? <span className="ptag">{PROJECT_SHORT[t.project]}</span> : null}
             {t.minutes ? <span>{formatMinutes(t.minutes)}</span> : null}
             {t.steps.length ? (
               <span>
@@ -103,21 +104,6 @@ function IdeaRow({ t }: { t: Todo }) {
   );
 }
 
-/** One simple line icon per project, drawn in the project's colour. */
-function ProjectIcon({ project }: { project: Project }) {
-  const path = {
-    biz: 'M3 17 9 11l4 4 8-8M15 7h6v6',
-    ecole: 'M2 9 12 4l10 5-10 5zM6 11v5c3 2 9 2 12 0v-5',
-    salle: 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12',
-    perso: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4-6 8-6s7 2 8 6',
-  }[project];
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={path} />
-    </svg>
-  );
-}
-
 function Group({ project, items, children }: { project: Project; items: number; children: React.ReactNode }) {
   const [open, setOpen] = useState(project === 'biz');
   return (
@@ -145,6 +131,12 @@ export function Head() {
   const left = list.filter((t) => !t.doneAt).length;
   const done = list.length - left;
   const [picked, setPicked] = useState<Project | null>(null);
+  const doneToday = useMemo(() => {
+    const out = { biz: 0, ecole: 0, salle: 0, perso: 0 } as Record<Project, number>;
+    const since = startOf(today);
+    for (const t of todos) if (t.kind === 'task' && t.doneAt && t.doneAt >= since) out[t.project] += 1;
+    return out;
+  }, [todos, today]);
   const nextOf = (p: Project) => list.find((t) => !t.doneAt && t.project === p) ?? open[p][0];
 
   return (
@@ -170,15 +162,22 @@ export function Head() {
           <div className="project-tiles">
             {PROJECTS.map((p) => {
               const next = nextOf(p);
+              const Glyph = PROJECT_GLYPH[p];
+              const finished = doneToday[p];
               return (
                 <button key={p} type="button" className={`project-tile pc-${p}${picked === p ? ' on' : ''}`} onClick={() => setPicked(picked === p ? null : p)} aria-expanded={picked === p}>
                   <span className="pt-name">
-                    <ProjectIcon project={p} />
+                    <span className="tile-ic">
+                      <Glyph size={18} />
+                    </span>
                     {PROJECT_LABEL[p]}
                   </span>
                   <span className="pt-count num">
                     {open[p].length}
                     <small> à faire</small>
+                  </span>
+                  <span className="bar pc" aria-hidden="true">
+                    <i style={{ width: `${finished + open[p].length ? (finished / (finished + open[p].length)) * 100 : 0}%` }} />
                   </span>
                   <span className="pt-next">{next ? next.title : 'Rien en attente'}</span>
                 </button>
