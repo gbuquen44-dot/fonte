@@ -1137,7 +1137,7 @@ button.card:active {
 }
 
 .choice button.on small {
-  color: rgba(5, 53, 42, 0.8);
+  color: rgba(42, 11, 11, 0.75);
 }
 
 .tags {
@@ -4538,4 +4538,57 @@ button.tile:active,
   width: 36px;
   height: 36px;
   border-radius: 11px;
+}
+
+/* Morning check-in: answers with concrete words, read in one glance */
+
+.choice.rows {
+  gap: 7px;
+}
+
+.choice.rows button {
+  min-height: 54px;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+  border-radius: 14px;
+}
+
+.choice.rows button span {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.choice.rows button small {
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.wheels.one {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 220px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.slept {
+  text-align: center;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+.slept b {
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.flow-step h2 {
+  font-family: var(--round);
+  font-weight: 600;
+  letter-spacing: -0.03em;
 }

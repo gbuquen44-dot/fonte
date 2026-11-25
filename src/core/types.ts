@@ -184,6 +184,22 @@ export interface DayLog {
   /** The day was typed by hand: Health no longer overwrites these fields. */
   manualFood?: boolean;
   manualSteps?: boolean;
+  /** Morning check-in, the precise version: lights out and up, as "HH:MM". */
+  bedAt?: string;
+  wakeAt?: string;
+  /** 0 up at the first ring, 1 after 5-10 min, 2 snooze 15-30 min, 3 snooze 30 min+, 4 before the alarm. */
+  wakeStyle?: number;
+  /** Times he woke up in the night: 0, 1, 2, 3 (3 or more). */
+  nightWakes?: number;
+  /** Will to work, 1 (none) to 5 (all in). */
+  motivation?: number;
+  /** Soreness 0 none to 3 strong, and where. */
+  soreness?: number;
+  soreAreas?: string[];
+  /** Belly on waking: 0 light, 1 normal, 2 heavy, 3 bloated. */
+  belly?: number;
+  /** Hunger on waking: 0 none to 3 very hungry. */
+  hunger?: number;
   /** Energy, mood and focus he gave in his notes, with the time he said it. */
   pulses?: { at: number; energy?: number; mood?: number; focus?: number }[];
   /** Short facts Claude kept from his notes: meal times, caffeine, how a session went. */

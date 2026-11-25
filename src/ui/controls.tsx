@@ -86,9 +86,9 @@ export interface Opt<T> {
   sub?: string;
 }
 
-export function Choice<T extends string | number>({ label, options, value, onPick, columns }: { label: string; options: Opt<T>[]; value?: T; onPick(v: T): void; columns?: number }) {
+export function Choice<T extends string | number>({ label, options, value, onPick, columns, rows }: { label: string; options: Opt<T>[]; value?: T; onPick(v: T): void; columns?: number; rows?: boolean }) {
   return (
-    <div className="choice" role="radiogroup" aria-label={label} style={columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}>
+    <div className={rows ? 'choice rows' : 'choice'} role="radiogroup" aria-label={label} style={columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}>
       {options.map((o) => (
         <button key={String(o.value)} type="button" role="radio" aria-checked={value === o.value} className={value === o.value ? 'on' : ''} onClick={() => onPick(o.value)}>
           <span>{o.label}</span>
