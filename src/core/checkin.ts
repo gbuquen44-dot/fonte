@@ -57,7 +57,68 @@ export const HUNGER: Opt[] = [
   { value: 3, label: 'Très faim', sub: 'Le ventre crie' },
 ];
 
-export const EVENING = ['Douche le soir', 'Écran au lit', 'Caféine après 14 h', 'Gros dîner', 'Dîner après 21 h', 'Séance après 18 h', 'Sieste', 'Alcool', 'Malade', 'Bruit ou chaleur'];
+export const HEAD: Opt[] = [
+  { value: 0, label: 'Claire' },
+  { value: 1, label: 'Un peu dans le brouillard' },
+  { value: 2, label: 'Complètement dans le brouillard' },
+  { value: 3, label: 'Mal de tête' },
+];
+
+export const MOOD: Opt[] = [
+  { value: 1, label: 'Irritable', sub: 'Tout m\'agace' },
+  { value: 2, label: 'À plat', sub: 'Rien ne me fait envie' },
+  { value: 3, label: 'Normal' },
+  { value: 4, label: 'Content', sub: 'Positif, de bonne humeur' },
+  { value: 5, label: 'Euphorique', sub: 'Tout me motive' },
+];
+
+export const GYM_WANT: Opt[] = [
+  { value: 1, label: 'Aucune', sub: 'Je vais me forcer' },
+  { value: 2, label: 'Moyenne' },
+  { value: 3, label: 'Forte' },
+  { value: 4, label: 'J\'ai hâte', sub: 'Je compte les heures' },
+];
+
+export const PAIN_AREAS = ['Épaule', 'Coude', 'Poignet', 'Genou', 'Bas du dos', 'Pec'];
+
+export const THIRST: Opt[] = [
+  { value: 0, label: 'Pas soif' },
+  { value: 1, label: 'Bouche un peu sèche' },
+  { value: 2, label: 'Très soif' },
+];
+
+/** Stored in `stress` (0 to 3). */
+export const STRESS: Opt[] = [
+  { value: 0, label: 'Journée tranquille' },
+  { value: 1, label: '1 ou 2 moments tendus' },
+  { value: 2, label: 'Tendu une bonne partie du jour' },
+  { value: 3, label: 'Sous pression toute la journée' },
+];
+
+export const DINNER_END: Opt[] = [
+  { value: 0, label: 'Avant 19 h' },
+  { value: 1, label: 'Entre 19 h et 20 h' },
+  { value: 2, label: 'Entre 20 h et 21 h' },
+  { value: 3, label: 'Entre 21 h et 22 h' },
+  { value: 4, label: 'Après 22 h' },
+];
+
+export const CAFFEINE: Opt[] = [
+  { value: 0, label: 'Pas de caféine' },
+  { value: 1, label: 'Avant 12 h' },
+  { value: 2, label: 'Entre 12 h et 14 h' },
+  { value: 3, label: 'Entre 14 h et 16 h' },
+  { value: 4, label: 'Après 16 h' },
+];
+
+export const SCREEN: Opt[] = [
+  { value: 0, label: 'Pas d\'écran' },
+  { value: 1, label: 'Moins de 15 min' },
+  { value: 2, label: '15 à 45 min' },
+  { value: 3, label: 'Plus de 45 min' },
+];
+
+export const EVENING = ['Douche le soir', 'Gros dîner', 'Séance après 18 h', 'Sieste', 'Alcool', 'Malade', 'Bruit ou chaleur'];
 
 /** Clock minutes, from "HH:MM". */
 export const toMinutes = (hhmm: string) => {

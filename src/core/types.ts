@@ -200,6 +200,20 @@ export interface DayLog {
   belly?: number;
   /** Hunger on waking: 0 none to 3 very hungry. */
   hunger?: number;
+  /** Head on waking: 0 clear, 1 a bit foggy, 2 foggy, 3 headache. */
+  head?: number;
+  /** Mood 1 irritable to 5 euphoric. */
+  mood?: number;
+  /** On a training day, the will to go: 1 none to 4 can't wait. */
+  gymWant?: number;
+  /** Joint pains (not soreness): where. */
+  pains?: string[];
+  /** Thirst on waking: 0 none, 1 dry mouth, 2 very thirsty. */
+  thirst?: number;
+  /** The evening before: end of dinner (0 before 19 h … 4 after 22 h), last caffeine (0 none, 1 before 12 h … 4 after 16 h), screen in bed (0 none … 3 over 45 min). */
+  dinnerEnd?: number;
+  lastCaffeine?: number;
+  screenBed?: number;
   /** Energy, mood and focus he gave in his notes, with the time he said it. */
   pulses?: { at: number; energy?: number; mood?: number; focus?: number }[];
   /** Short facts Claude kept from his notes: meal times, caffeine, how a session went. */

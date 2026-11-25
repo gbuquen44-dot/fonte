@@ -3,12 +3,62 @@ import { updateDay, useApp } from '../state/store';
 import { weighIns } from '../core/energy';
 import type { ISODate } from '../core/dates';
 import type { DayLog } from '../core/types';
-import { BED_VALUES, bedValue, BELLY, clockFr, ENERGY, EVENING, guessWake, HUNGER, MOTIVATION, NIGHT_WAKES, sleptHours, SORE_AREAS, SORENESS, toClock, toMinutes, WAKE_STYLE, WAKE_VALUES } from '../core/checkin';
+import { plannedFor } from '../core/program';
+import {
+  BED_VALUES,
+  bedValue,
+  BELLY,
+  CAFFEINE,
+  clockFr,
+  DINNER_END,
+  ENERGY,
+  EVENING,
+  GYM_WANT,
+  guessWake,
+  HEAD,
+  HUNGER,
+  MOOD,
+  MOTIVATION,
+  NIGHT_WAKES,
+  PAIN_AREAS,
+  SCREEN,
+  sleptHours,
+  SORE_AREAS,
+  SORENESS,
+  STRESS,
+  THIRST,
+  toClock,
+  toMinutes,
+  WAKE_STYLE,
+  WAKE_VALUES,
+  type Opt,
+} from '../core/checkin';
 import { Choice, fr1, hours, MultiChoice, Sheet } from '../ui/controls';
 import { rowHeight, Wheel } from '../ui/Wheel';
 
 const WEIGHTS = Array.from({ length: 701 }, (_, i) => +(40 + i / 10).toFixed(1));
-const STEPS = 9;
+
+type NumKey = 'wakeStyle' | 'nightWakes' | 'head' | 'recovery' | 'mood' | 'motivation' | 'gymWant' | 'belly' | 'hunger' | 'thirst' | 'stress' | 'dinnerEnd' | 'lastCaffeine' | 'screenBed';
+
+/** One tap per question: the answer is saved and the next question slides in. */
+const ASK: Record<NumKey, { title: string; hint?: string; options: Opt[]; columns?: number }> = {
+  wakeStyle: { title: 'Comment tu t\'es levé ?', options: WAKE_STYLE },
+  nightWakes: { title: 'Réveillé dans la nuit ?', hint: 'Les fois où tu as ouvert les yeux, même pour te rendormir vite.', options: NIGHT_WAKES, columns: 2 },
+  head: { title: 'Ta tête au réveil ?', options: HEAD },
+  recovery: { title: 'Ton énergie, là ?', options: ENERGY },
+  mood: { title: 'Ton humeur ?', options: MOOD },
+  motivation: { title: 'Ton envie de bosser aujourd\'hui ?', options: MOTIVATION },
+  gymWant: { title: 'Ton envie d\'aller à la salle ?', hint: 'Tu as séance aujourd\'hui.', options: GYM_WANT },
+  belly: { title: 'Ton ventre au réveil ?', options: BELLY },
+  hunger: { title: 'Ta faim au réveil ?', options: HUNGER },
+  thirst: { title: 'Ta soif au réveil ?', options: THIRST },
+  stress: { title: 'Ton stress hier ?', hint: 'Hors salle : école, business, perso.', options: STRESS },
+  dinnerEnd: { title: 'Hier, ton dîner fini à quelle heure ?', options: DINNER_END },
+  lastCaffeine: { title: 'Hier, ta dernière caféine ?', hint: 'Café, pré-workout, boisson énergisante.', options: CAFFEINE },
+  screenBed: { title: 'Hier, écran au lit ?', hint: 'Téléphone ou ordi, une fois couché.', options: SCREEN, columns: 2 },
+};
+
+type Step = 'weight' | 'night' | 'soreness' | 'pains' | 'evening' | NumKey;
 
 export function Checkin({ date, open, onClose }: { date: ISODate; open: boolean; onClose(): void }) {
   return (
@@ -20,45 +70,50 @@ export function Checkin({ date, open, onClose }: { date: ISODate; open: boolean;
 
 function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
   const days = useApp((r) => r.data.days);
+  const profile = useApp((r) => r.data.profile);
   const today: Partial<DayLog> = days[date] ?? {};
   /** His last full morning: the wheels start from it, so a usual night is one tap. */
   const before = useMemo(() => Object.values(days).filter((d) => d.date < date && d.checkinAt).sort((a, b) => a.date.localeCompare(b.date)).pop(), [days, date]);
   const lastWeight = useMemo(() => weighIns(days).filter((d) => d.date <= date).pop()?.weight ?? 70, [days, date]);
+  const training = useMemo(() => !!(profile && plannedFor(date, profile)), [profile, date]);
   const row = useMemo(rowHeight, []);
 
-  const [step, setStep] = useState(0);
+  const steps: Step[] = useMemo(
+    () => ['weight', 'night', 'wakeStyle', 'nightWakes', 'head', 'recovery', 'mood', 'motivation', ...(training ? (['gymWant'] as Step[]) : []), 'soreness', 'pains', 'belly', 'hunger', 'thirst', 'stress', 'dinnerEnd', 'lastCaffeine', 'screenBed', 'evening'],
+    [training],
+  );
+  const [i, setI] = useState(0);
+  const step = steps[Math.min(i, steps.length - 1)];
+
   const [weight, setWeight] = useState(today.weight ?? lastWeight);
   /** The wheel starts on his last weight: without a weigh-in, saving it would invent one. */
   const [weighed, setWeighed] = useState(!(today.checkinAt && today.weight === undefined));
   const [bed, setBed] = useState(bedValue(today.bedAt ?? before?.bedAt ?? '22:00'));
   const [wake, setWake] = useState(today.wakeAt ? toMinutes(today.wakeAt) : guessWake(new Date(), before?.wakeAt ?? '04:00'));
-  const [wakeStyle, setWakeStyle] = useState(today.wakeStyle);
-  const [nightWakes, setNightWakes] = useState(today.nightWakes);
-  const [recovery, setRecovery] = useState(today.recovery);
-  const [motivation, setMotivation] = useState(today.motivation);
+  const [nums, setNums] = useState<Partial<Record<NumKey, number>>>(() => {
+    const out: Partial<Record<NumKey, number>> = {};
+    for (const k of Object.keys(ASK) as NumKey[]) if (typeof today[k] === 'number') out[k] = today[k] as number;
+    return out;
+  });
   const [soreness, setSoreness] = useState(today.soreness);
   const [soreAreas, setSoreAreas] = useState<string[]>(today.soreAreas ?? []);
-  const [belly, setBelly] = useState(today.belly);
-  const [hunger, setHunger] = useState(today.hunger);
+  const [pains, setPains] = useState<string[]>(today.pains ?? []);
   const [tags, setTags] = useState<string[]>(today.tags ?? []);
 
-  const next = () => setStep((s) => s + 1);
-  const pick = (set: (v: number) => void) => (v: number) => {
-    set(v);
-    setTimeout(next, 170);
-  };
+  const next = () => setI((n) => n + 1);
+  const later = () => setTimeout(next, 170);
   const bedAt = toClock(bed);
   const wakeAt = toClock(wake);
   const sleepH = sleptHours(bedAt, wakeAt);
-  const answers: Partial<DayLog> = { weight: weighed ? weight : undefined, bedAt, wakeAt, sleepH, wakeStyle, nightWakes, recovery, motivation, soreness, soreAreas: soreness ? soreAreas : [], belly, hunger, tags };
-  const latest = useRef({ answers, step });
-  latest.current = { answers, step };
+  const answers: Partial<DayLog> = { weight: weighed ? weight : undefined, bedAt, wakeAt, sleepH, ...nums, soreness, soreAreas: soreness ? soreAreas : [], pains, tags };
+  const latest = useRef({ answers, i });
+  latest.current = { answers, i };
   const finished = useRef(false);
 
   /** Closing halfway keeps the answers, and the morning stays to finish. */
   useEffect(
     () => () => {
-      if (!finished.current && latest.current.step > 0) updateDay(date, latest.current.answers);
+      if (!finished.current && latest.current.i > 0) updateDay(date, latest.current.answers);
     },
     [date],
   );
@@ -69,15 +124,17 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
     onClose();
   };
 
+  const ask = step in ASK ? ASK[step as NumKey] : null;
+
   return (
     <div className="flow">
       <div className="flow-pips" aria-hidden="true">
-        {Array.from({ length: STEPS + 1 }, (_, i) => (
-          <i key={i} className={i <= step ? 'on' : ''} />
+        {steps.map((s, n) => (
+          <i key={s} className={n <= i ? 'on' : ''} />
         ))}
       </div>
       <div className="flow-step" key={step}>
-        {step === 0 ? (
+        {step === 'weight' ? (
           <>
             <h2>Ton poids</h2>
             <p className="muted">Au réveil, à jeun. La roue part de ta dernière pesée.</p>
@@ -96,7 +153,8 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
             </button>
           </>
         ) : null}
-        {step === 1 ? (
+
+        {step === 'night' ? (
           <>
             <h2>Ta nuit</h2>
             <p className="muted">L'heure où tu as éteint, et celle où tu t'es levé.</p>
@@ -112,32 +170,26 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
             </button>
           </>
         ) : null}
-        {step === 2 ? (
+
+        {ask ? (
           <>
-            <h2>Comment tu t'es levé ?</h2>
-            <Choice<number> label="Le réveil" rows columns={1} value={wakeStyle} onPick={pick(setWakeStyle)} options={WAKE_STYLE} />
+            <h2>{ask.title}</h2>
+            {ask.hint ? <p className="muted">{ask.hint}</p> : null}
+            <Choice<number>
+              label={ask.title}
+              rows={!ask.columns}
+              columns={ask.columns ?? 1}
+              value={nums[step as NumKey]}
+              onPick={(v) => {
+                setNums((x) => ({ ...x, [step]: v }));
+                later();
+              }}
+              options={ask.options}
+            />
           </>
         ) : null}
-        {step === 3 ? (
-          <>
-            <h2>Réveillé dans la nuit ?</h2>
-            <p className="muted">Les fois où tu as ouvert les yeux, même pour te rendormir vite.</p>
-            <Choice<number> label="Réveils dans la nuit" columns={2} value={nightWakes} onPick={pick(setNightWakes)} options={NIGHT_WAKES} />
-          </>
-        ) : null}
-        {step === 4 ? (
-          <>
-            <h2>Ton énergie, là ?</h2>
-            <Choice<number> label="Énergie" rows columns={1} value={recovery} onPick={pick(setRecovery)} options={ENERGY} />
-          </>
-        ) : null}
-        {step === 5 ? (
-          <>
-            <h2>Ton envie de bosser aujourd'hui ?</h2>
-            <Choice<number> label="Envie de bosser" rows columns={1} value={motivation} onPick={pick(setMotivation)} options={MOTIVATION} />
-          </>
-        ) : null}
-        {step === 6 ? (
+
+        {step === 'soreness' ? (
           <>
             <h2>Des courbatures ?</h2>
             <Choice<number>
@@ -147,7 +199,7 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
               value={soreness}
               onPick={(v) => {
                 setSoreness(v);
-                if (v === 0) setTimeout(next, 170);
+                if (v === 0) later();
               }}
               options={SORENESS}
             />
@@ -162,19 +214,32 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
             ) : null}
           </>
         ) : null}
-        {step === 7 ? (
+
+        {step === 'pains' ? (
           <>
-            <h2>Ton ventre au réveil ?</h2>
-            <Choice<number> label="Ventre" rows columns={1} value={belly} onPick={pick(setBelly)} options={BELLY} />
+            <h2>Une douleur ?</h2>
+            <p className="muted">Une gêne dans une articulation, pas une courbature.</p>
+            <MultiChoice label="Douleurs" value={pains} onChange={setPains} options={PAIN_AREAS} />
+            {pains.length ? (
+              <button type="button" className="btn primary big" onClick={next}>
+                Continuer
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn ghost big"
+                onClick={() => {
+                  setPains([]);
+                  next();
+                }}
+              >
+                Aucune douleur
+              </button>
+            )}
           </>
         ) : null}
-        {step === 8 ? (
-          <>
-            <h2>Ta faim au réveil ?</h2>
-            <Choice<number> label="Faim" rows columns={1} value={hunger} onPick={pick(setHunger)} options={HUNGER} />
-          </>
-        ) : null}
-        {step >= 9 ? (
+
+        {step === 'evening' ? (
           <>
             <h2>Hier soir</h2>
             <p className="muted">Coche tout ce qui s'est passé. Rien ? Termine directement.</p>
@@ -185,8 +250,8 @@ function Flow({ date, onClose }: { date: ISODate; onClose(): void }) {
           </>
         ) : null}
       </div>
-      {step > 0 ? (
-        <button type="button" className="link" onClick={() => setStep((s) => s - 1)}>
+      {i > 0 ? (
+        <button type="button" className="link" onClick={() => setI((n) => n - 1)}>
           Retour
         </button>
       ) : null}
