@@ -4592,3 +4592,50 @@ button.tile:active,
   font-weight: 600;
   letter-spacing: -0.03em;
 }
+
+/* Session: a load per side, and the order of the exercises */
+
+.side-chip {
+  flex: none;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 17px;
+  border: 1px solid var(--hair);
+  background: var(--glass);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.side-chip.on {
+  border-color: transparent;
+  background: rgba(239, 93, 93, 0.2);
+  color: var(--mint);
+}
+
+.wheels.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.menu button span {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.menu button small {
+  color: var(--ink-3);
+  font-size: 14px;
+}
+
+.overview h3 small {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--glass);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: 2px;
+}

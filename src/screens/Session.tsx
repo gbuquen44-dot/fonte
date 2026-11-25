@@ -4,13 +4,18 @@ import type { EquipKind, LiftKey, PlannedSet, PostCheck, PreCheck, SessionLog } 
 import {
   addSet,
   applyAdjust,
+  blockOf,
   currentStep,
+  doLater,
+  doNow,
   durationMin,
   finishSession,
   isDone,
+  leaveSuperset,
   logSet,
   needsEffort,
   peekNext,
+  pendingExercises,
   pickScheme,
   prefill,
   progress,
@@ -18,6 +23,7 @@ import {
   replaceExercise,
   restFor,
   skipExercise,
+  supersetWith,
   undoLast,
   warmupLadder,
   type FormRead,
@@ -27,7 +33,7 @@ import { detectPRs, e1rm, LIFT_LABEL, platesPerSide, tonnage } from '../core/lif
 import { effortText, plural, repsText, SET_LABEL } from '../core/labels';
 import { CUES, EXERCISES, REPLACEMENTS } from '../data/exercises';
 import { Choice, int, Keypad, kg, MultiChoice, Sheet, SheetHead } from '../ui/controls';
-import { IconCheck, IconClose, IconDown, IconList, IconMore, IconPlus, IconSkip, IconSwap, IconUndo } from '../ui/icons';
+import { IconArrowRight, IconCheck, IconClose, IconDown, IconLink, IconList, IconMore, IconPlus, IconSkip, IconSwap, IconUndo } from '../ui/icons';
 import { loadValues, rowHeight, Wheel } from '../ui/Wheel';
 import { beep, haptic, prepareAudio, success } from '../ui/sound';
 
@@ -35,6 +41,13 @@ const MAX_LOAD: Record<EquipKind, number> = { barbell: 320, smith: 260, machine:
 const REPS = Array.from({ length: 31 }, (_, i) => i);
 const LEFT = [0, 1, 2, 3, 4, 5];
 const repsFormat = (n: number) => String(n);
+/** One-arm and one-leg work: dumbbells, and cables or machines done one side at a time. */
+const sidedKind = (kind: EquipKind, name: string) => kind === 'dumbbell' || ((kind === 'cable' || kind === 'machine') && /unilat/i.test(name));
+
+type Entry = { load: number; reps: number; rpe?: number; left?: number; right?: number };
+
+/** "14 × 10", or "12 / 14 × 10" with a load per side (left first). */
+const loadOf = (x: { load: number; left?: number; right?: number }) => (x.left !== undefined && x.right !== undefined ? `${kg(x.left)} / ${kg(x.right)}` : kg(x.load));
 
 function clock(ms: number) {
   const t = Math.max(0, Math.ceil(ms / 1000));
@@ -105,6 +118,10 @@ function Running({ s, onClose }: { s: SessionLog; onClose(): void }) {
   const restLeft = s.restUntil ? s.restUntil - now : 0;
   const ended = useRef(0);
   const lastTap = useRef(0);
+  const order = s.plan.map((e) => e.exId).join('|');
+
+  /** The order changed: a set being edited points to another exercise now. */
+  useEffect(() => setEditing(null), [order]);
 
   useEffect(() => {
     if (s.restUntil && restLeft <= 0 && ended.current !== s.restUntil) {
@@ -114,7 +131,7 @@ function Running({ s, onClose }: { s: SessionLog; onClose(): void }) {
     }
   }, [restLeft, s]);
 
-  function validate(st: Step, entry: { load: number; reps: number; rpe?: number }) {
+  function validate(st: Step, entry: Entry) {
     const t = Date.now();
     const wasEditing = !!editing;
     if (!wasEditing && t - lastTap.current < 700) return;
@@ -324,7 +341,7 @@ function SetCard({
   tm: Record<LiftKey, number>;
   history: SessionLog[];
   flash: number;
-  onValidate(st: Step, e: { load: number; reps: number; rpe?: number }): void;
+  onValidate(st: Step, e: Entry): void;
   onCancelEdit(): void;
   onEdit(st: Step): void;
 }) {
@@ -336,18 +353,36 @@ function SetCard({
   const [load, setLoad] = useState(logged?.load ?? init.load);
   const [reps, setReps] = useState(logged?.reps ?? init.reps);
   const [rpe, setRpe] = useState<number | undefined>(logged?.rpe ?? p.rpe);
-  const [pad, setPad] = useState<'load' | 'reps' | null>(null);
+  const [pad, setPad] = useState<'load' | 'left' | 'right' | 'reps' | null>(null);
   const kind = def?.kind ?? 'machine';
   const step = def?.step ?? 2.5;
-  const offGrid = Math.abs(load / step - Math.round(load / step)) > 1e-6 || load > MAX_LOAD[kind] ? load : null;
-  const grid = useMemo(() => loadValues(step, MAX_LOAD[kind], offGrid ?? 0), [step, kind, offGrid]);
+  const canSides = sidedKind(kind, def?.name ?? '') || init.right !== undefined || logged?.right !== undefined;
+  const [sides, setSides] = useState(canSides && (logged ? logged.right !== undefined : init.right !== undefined));
+  const [left, setLeft] = useState(logged?.left ?? init.left ?? load);
+  const [right, setRight] = useState(logged?.right ?? init.right ?? load);
+  const offOf = (v: number) => (Math.abs(v / step - Math.round(v / step)) > 1e-6 || v > MAX_LOAD[kind] ? v : 0);
+  const grid = useMemo(() => loadValues(step, MAX_LOAD[kind], offOf(load)), [step, kind, offOf(load)]);
+  const gridL = useMemo(() => loadValues(step, MAX_LOAD[kind], offOf(left)), [step, kind, offOf(left)]);
+  const gridR = useMemo(() => loadValues(step, MAX_LOAD[kind], offOf(right)), [step, kind, offOf(right)]);
   const row = useMemo(rowHeight, []);
   const lift = !!def?.lift;
   const effort = needsEffort(p, lift);
 
   useEffect(() => {
-    if (!logged) setLoad(init.load);
+    if (logged) return;
+    setLoad(init.load);
+    setLeft(init.left ?? init.load);
+    setRight(init.right ?? init.load);
   }, [init.load]);
+
+  const toggleSides = () => {
+    if (sides) setLoad(Math.min(left, right));
+    else {
+      setLeft(load);
+      setRight(load);
+    }
+    setSides(!sides);
+  };
 
   const body = kind === 'bodyweight';
   const plates = kind === 'barbell' && load >= 20 ? platesPerSide(load) : null;
@@ -366,6 +401,11 @@ function SetCard({
             {ex.group ? ' · Superset' : ''}
           </p>
         </div>
+        {canSides ? (
+          <button type="button" className={`side-chip${sides ? ' on' : ''}`} aria-pressed={sides} onClick={toggleSides}>
+            Gauche ≠ droite
+          </button>
+        ) : null}
         {editing ? (
           <button type="button" className="round" onClick={onCancelEdit} aria-label="Annuler la modification">
             <IconClose size={18} />
@@ -398,7 +438,7 @@ function SetCard({
               <button type="button" data-state={state} disabled={!log || i === st.set} onClick={() => onEdit({ ex: st.ex, set: i })}>
                 {log ? (
                   <span className="num">
-                    {body && !log.load ? '' : `${kg(log.load)}×`}
+                    {body && !log.load ? '' : `${loadOf(log)}×`}
                     {log.reps}
                   </span>
                 ) : (
@@ -415,10 +455,18 @@ function SetCard({
         {p.rpe !== undefined ? <span> · {effortText(p.rpe)}</span> : null}
       </p>
 
-      <div className="wheels">
-        <Wheel label={body ? 'Lest (kg)' : 'Kilos'} values={grid} value={load} onChange={setLoad} format={kg} onEdit={() => setPad('load')} row={row} />
-        <Wheel label="Reps" values={REPS} value={reps} onChange={setReps} format={repsFormat} onEdit={() => setPad('reps')} row={row} />
-      </div>
+      {sides ? (
+        <div className="wheels three">
+          <Wheel label="Gauche" values={gridL} value={left} onChange={setLeft} format={kg} onEdit={() => setPad('left')} row={row} />
+          <Wheel label="Droite" values={gridR} value={right} onChange={setRight} format={kg} onEdit={() => setPad('right')} row={row} />
+          <Wheel label="Reps" values={REPS} value={reps} onChange={setReps} format={repsFormat} onEdit={() => setPad('reps')} row={row} />
+        </div>
+      ) : (
+        <div className="wheels">
+          <Wheel label={body ? 'Lest (kg)' : 'Kilos'} values={grid} value={load} onChange={setLoad} format={kg} onEdit={() => setPad('load')} row={row} />
+          <Wheel label="Reps" values={REPS} value={reps} onChange={setReps} format={repsFormat} onEdit={() => setPad('reps')} row={row} />
+        </div>
+      )}
 
       {plates && plates.plates.length ? <p className="setcard-plates num">Par côté : {plates.plates.map(kg).join(' + ')}</p> : plates ? <p className="setcard-plates">Barre seule</p> : null}
 
@@ -438,19 +486,21 @@ function SetCard({
         </div>
       ) : null}
 
-      <button key={flash} type="button" className={`btn primary big${flash ? ' pulse' : ''}`} onClick={() => onValidate(st, { load, reps, rpe: effort ? rpe : undefined })}>
+      <button key={flash} type="button" className={`btn primary big${flash ? ' pulse' : ''}`} onClick={() => onValidate(st, sides ? { load: Math.min(left, right), left, right, reps, rpe: effort ? rpe : undefined } : { load, reps, rpe: effort ? rpe : undefined })}>
         <IconCheck size={22} /> {editing ? 'Enregistrer' : reps === 0 ? 'Série ratée' : 'Série faite'}
       </button>
 
       {pad ? (
         <Keypad
-          title={pad === 'load' ? (def?.name ?? 'Charge') : 'Répétitions'}
-          unit={pad === 'load' ? 'kg' : 'reps'}
-          decimals={pad === 'load'}
-          initial={pad === 'load' ? load : reps}
+          title={pad === 'reps' ? 'Répétitions' : pad === 'left' ? 'Côté gauche' : pad === 'right' ? 'Côté droit' : (def?.name ?? 'Charge')}
+          unit={pad === 'reps' ? 'reps' : 'kg'}
+          decimals={pad !== 'reps'}
+          initial={pad === 'reps' ? reps : pad === 'left' ? left : pad === 'right' ? right : load}
           onCancel={() => setPad(null)}
           onDone={(n) => {
             if (pad === 'load') setLoad(n);
+            else if (pad === 'left') setLeft(n);
+            else if (pad === 'right') setRight(n);
             else setReps(Math.min(30, Math.round(n)));
             setPad(null);
           }}
@@ -465,7 +515,10 @@ function Overview({ s, current, onEdit }: { s: SessionLog; current?: number; onE
     <div className="overview">
       {s.plan.map((e, i) => (
         <section key={`${e.exId}-${i}`} data-now={current === i ? 'true' : undefined}>
-          <h3>{EXERCISES[e.exId]?.name ?? e.exId}</h3>
+          <h3>
+            {EXERCISES[e.exId]?.name ?? e.exId}
+            {e.group ? <small>Superset</small> : null}
+          </h3>
           <ul>
             {e.sets.map((p, j) => {
               const log = s.sets.find((x) => x.plannedId === p.id);
@@ -474,7 +527,7 @@ function Overview({ s, current, onEdit }: { s: SessionLog; current?: number; onE
                 <li key={p.id}>
                   <button type="button" disabled={!log} onClick={() => onEdit({ ex: i, set: j })}>
                     <span>{SET_LABEL[p.type] || `Série ${j + 1}`}</span>
-                    <span className="num">{log ? (log.load ? `${kg(log.load)} kg × ${log.reps}` : `${log.reps} ${plural(log.reps, 'rep')}`) : skipped ? 'Passée' : <Planned p={p} />}</span>
+                    <span className="num">{log ? (log.load || log.right ? `${loadOf(log)} kg × ${log.reps}` : `${log.reps} ${plural(log.reps, 'rep')}`) : skipped ? 'Passée' : <Planned p={p} />}</span>
                     {log ? <IconCheck size={16} /> : null}
                   </button>
                 </li>
@@ -490,10 +543,40 @@ function Overview({ s, current, onEdit }: { s: SessionLog; current?: number; onE
 const Planned = ({ p }: { p: PlannedSet }) => <>{p.max ? 'max de reps' : `${repsText(p.reps, p.repsMax)} ${plural(p.repsMax ?? p.reps, 'rep')}`}</>;
 
 function SessionMenu({ s, step, onClose, onEnd, onAbandon }: { s: SessionLog; step: Step | null; onClose(): void; onEnd(): void; onAbandon(): void }) {
-  const [view, setView] = useState<'main' | 'swap' | 'abandon'>('main');
+  const [view, setView] = useState<'main' | 'swap' | 'abandon' | 'now' | 'superset'>('main');
   const ex = step ? s.plan[step.ex] : null;
   const alts = ex ? (REPLACEMENTS[ex.exId] ?? []).filter((id) => EXERCISES[id]) : [];
   const name = ex ? EXERCISES[ex.exId]?.name : '';
+  const others = step ? pendingExercises(s, step.ex) : [];
+  const block = step ? blockOf(s.plan, step.ex) : null;
+  const run = (next: SessionLog) => {
+    saveSession(next);
+    onClose();
+  };
+  const pick = (title: string, hint: string, onPick: (i: number) => void) => (
+    <div className="menu">
+      <h3>{title}</h3>
+      <p>{hint}</p>
+      {others.map((i) => {
+        const e = s.plan[i];
+        const left = e.sets.filter((x) => !isDone(s, x.id) && !s.skipped.includes(x.id)).length;
+        return (
+          <button key={`${e.exId}-${i}`} type="button" onClick={() => onPick(i)}>
+            <span>{EXERCISES[e.exId]?.name ?? e.exId}</span>
+            <small className="num">
+              {left} {plural(left, 'série')}
+            </small>
+          </button>
+        );
+      })}
+    </div>
+  );
+  if (view === 'now' && step) {
+    return pick('Quel exo maintenant ?', `Il passe devant. ${name} vient juste après.`, (i) => run(doNow(s, i, Date.now())));
+  }
+  if (view === 'superset' && step) {
+    return pick(`Superset avec ${name}`, 'Vous alternez série par série, sans repos entre les deux.', (i) => run(supersetWith(s, step.ex, i, Date.now())));
+  }
   if (view === 'swap' && step) {
     return (
       <div className="menu">
@@ -532,6 +615,26 @@ function SessionMenu({ s, step, onClose, onEnd, onAbandon }: { s: SessionLog; st
       {step ? (
         <button type="button" onClick={() => { saveSession(addSet(s, step.ex, Date.now())); onClose(); }}>
           <IconPlus size={20} /> Ajouter une série
+        </button>
+      ) : null}
+      {step && others.length ? (
+        <button type="button" onClick={() => setView('now')}>
+          <IconArrowRight size={20} /> Machine prise : faire un autre exo
+        </button>
+      ) : null}
+      {step && others.length ? (
+        <button type="button" onClick={() => run(doLater(s, step.ex, Date.now()))}>
+          <IconDown size={20} /> Faire {block && block[1] > block[0] ? 'ce superset' : name} à la fin
+        </button>
+      ) : null}
+      {step && others.length ? (
+        <button type="button" onClick={() => setView('superset')}>
+          <IconLink size={20} /> Superset avec un autre exo
+        </button>
+      ) : null}
+      {step && ex?.group ? (
+        <button type="button" onClick={() => run(leaveSuperset(s, step.ex, Date.now()))}>
+          <IconLink size={20} /> Sortir {name} du superset
         </button>
       ) : null}
       {step && alts.length ? (

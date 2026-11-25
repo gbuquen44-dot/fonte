@@ -126,7 +126,7 @@ export function detectPRs(
 }
 
 export function tonnage(sets: LoggedSet[]): number {
-  return sets.reduce((a, s) => a + (s.failed ? 0 : s.load * s.reps), 0);
+  return sets.reduce((a, s) => a + (s.failed ? 0 : (s.left !== undefined && s.right !== undefined ? (s.left + s.right) / 2 : s.load) * s.reps), 0);
 }
 
 export interface Attempt {

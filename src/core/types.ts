@@ -99,7 +99,11 @@ export interface LoggedSet {
   plannedId: string;
   exId: string;
   type: SetType;
+  /** With a load per side, the weaker side: progress follows the side that limits. */
   load: number;
+  /** One-arm or one-leg work, when each side has its own load. */
+  left?: number;
+  right?: number;
   reps: number;
   rpe?: number;
   failed?: boolean;

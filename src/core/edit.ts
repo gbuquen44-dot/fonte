@@ -2,13 +2,13 @@ import type { ExerciseDef, Muscle, Slot } from './types';
 import { EXERCISES } from '../data/exercises';
 
 /** A group only means a superset while at least two slots next to each other share it. */
-export function normalizeGroups(slots: Slot[]): Slot[] {
+export function normalizeGroups<T extends { group?: string }>(slots: T[]): T[] {
   return slots.map((x, i) => {
     if (!x.group) return x;
     const near = slots[i - 1]?.group === x.group || slots[i + 1]?.group === x.group;
     if (near) return x;
     const { group: _drop, ...rest } = x;
-    return rest;
+    return rest as T;
   });
 }
 

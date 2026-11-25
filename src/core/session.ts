@@ -3,6 +3,7 @@ import { EXERCISES } from '../data/exercises';
 import { detectPRs, floorLoad, roundLoad } from './lifting';
 import { exactRpe, pctForRepsToFailure } from './program';
 import type { ISODate } from './dates';
+import { normalizeGroups } from './edit';
 
 export interface Step {
   ex: number;
@@ -83,6 +84,16 @@ export interface Prefill {
   /** A short sentence about what the app decided for this set. */
   hint?: string;
   first?: boolean;
+  /** Set when he last logged this exercise side by side. */
+  left?: number;
+  right?: number;
+}
+
+/** Carries the left and right loads of the set a prefill comes from, moved by the same step. */
+function withSides(p: Prefill, from?: LoggedSet): Prefill {
+  if (from?.left === undefined || from.right === undefined) return p;
+  const d = p.load - from.load;
+  return { ...p, left: +(from.left + d).toFixed(2), right: +(from.right + d).toFixed(2) };
 }
 
 const START_LOAD: Record<EquipKind, number> = { barbell: 40, smith: 40, machine: 30, cable: 20, dumbbell: 12, bodyweight: 0 };
@@ -134,7 +145,7 @@ export function prefill(s: SessionLog, st: Step, tm: Record<LiftKey, number>, hi
   const top = ps.max ? Infinity : ps.repsMax ?? ps.reps;
   if (here.length) {
     const prev = here[here.length - 1];
-    return { load: prev.load, reps: Math.min(prev.reps || ps.reps, top) };
+    return withSides({ load: prev.load, reps: Math.min(prev.reps || ps.reps, top) }, prev);
   }
   if (!last.length && lift && tm[lift]) {
     const pct = pctForRepsToFailure(ps.reps + 10 - (ps.rpe ?? 9));
@@ -153,11 +164,12 @@ export function prefill(s: SessionLog, st: Step, tm: Record<LiftKey, number>, hi
   const step = def?.step ?? 2.5;
   const allTop = last.every((x) => x.reps >= top);
   if (allTop && last.length >= 2 && top > ps.reps) {
-    return { load: last[0].load + step, reps: ps.reps, hint: `${top} reps partout la dernière fois : +${kgText(step)} kg.` };
+    return withSides({ load: last[0].load + step, reps: ps.reps, hint: `${top} reps partout la dernière fois : +${kgText(step)} kg.` }, last[0]);
   }
   const same = last[Math.min(st.set, last.length - 1)];
   const goal = Math.min(same.reps + 1, top);
-  return { load: same.load, reps: goal, hint: goal > same.reps ? `La dernière fois : ${same.reps} reps. Vise ${goal}.` : `La dernière fois : ${kgText(same.load)} kg × ${same.reps}.` };
+  const was = same.left !== undefined && same.right !== undefined ? `gauche ${kgText(same.left)}, droite ${kgText(same.right)} kg` : `${kgText(same.load)} kg`;
+  return withSides({ load: same.load, reps: goal, hint: goal > same.reps ? `La dernière fois : ${same.reps} reps. Vise ${goal}.` : `La dernière fois : ${was} × ${same.reps}.` }, same);
 }
 
 /** Heavy sets where the reps left in the tank are worth noting. */
@@ -166,16 +178,18 @@ export const needsEffort = (p: PlannedSet, lift: boolean) => !!p.ref || p.type =
 export function logSet(
   s: SessionLog,
   st: Step,
-  entry: { load: number; reps: number; rpe?: number; failed?: boolean },
+  entry: { load: number; reps: number; rpe?: number; failed?: boolean; left?: number; right?: number },
   now: number,
 ): SessionLog {
   const ex = s.plan[st.ex];
   const ps = ex.sets[st.set];
+  const sides = entry.left !== undefined && entry.right !== undefined;
   const row: LoggedSet = {
     plannedId: ps.id,
     exId: ex.exId,
     type: ps.type,
-    load: entry.load,
+    load: sides ? Math.min(entry.left as number, entry.right as number) : entry.load,
+    ...(sides ? { left: entry.left, right: entry.right } : {}),
     reps: entry.reps,
     rpe: entry.rpe,
     failed: entry.failed || entry.reps === 0,
@@ -232,6 +246,74 @@ export function replaceExercise(s: SessionLog, exIndex: number, newExId: string,
     });
   }
   return { ...s, plan, updatedAt: now };
+}
+
+/** First and last index of the superset exercise i belongs to (itself alone outside a superset). */
+export function blockOf(plan: PlannedExercise[], i: number): [number, number] {
+  const g = plan[i]?.group;
+  let a = i;
+  let b = i;
+  if (g) {
+    while (a > 0 && plan[a - 1].group === g) a--;
+    while (b < plan.length - 1 && plan[b + 1].group === g) b++;
+  }
+  return [a, b];
+}
+
+export const isFinished = (s: SessionLog, i: number) => s.plan[i].sets.every((x) => isDone(s, x.id) || s.skipped.includes(x.id));
+
+/** Exercises still to do, outside the superset he is on. */
+export function pendingExercises(s: SessionLog, current: number | null): number[] {
+  const [a, b] = current === null ? [-1, -1] : blockOf(s.plan, current);
+  return s.plan.map((_, i) => i).filter((i) => (i < a || i > b) && !isFinished(s, i));
+}
+
+/** Moves exercise i, with its whole superset, in front of index `to` of the current order. */
+function moveBlock(plan: PlannedExercise[], i: number, to: number): PlannedExercise[] {
+  const [a, b] = blockOf(plan, i);
+  if (to >= a && to <= b + 1) return plan;
+  const out = [...plan];
+  const block = out.splice(a, b - a + 1);
+  out.splice(to > b ? to - block.length : to, 0, ...block);
+  return out;
+}
+
+/** A machine is free: exercise i runs now, and the one he was on comes right after. */
+export function doNow(s: SessionLog, i: number, now: number): SessionLog {
+  const cur = currentStep(s);
+  if (!cur) return s;
+  const plan = moveBlock(s.plan, i, blockOf(s.plan, cur.ex)[0]);
+  return plan === s.plan ? s : { ...s, plan, restUntil: undefined, restTotal: undefined, updatedAt: now };
+}
+
+/** A machine is taken: exercise i, with its superset, goes to the end. */
+export function doLater(s: SessionLog, i: number, now: number): SessionLog {
+  const plan = moveBlock(s.plan, i, s.plan.length);
+  return plan === s.plan ? s : { ...s, plan, updatedAt: now };
+}
+
+/** Pulls exercise b next to exercise a, and the two alternate set by set. */
+export function supersetWith(s: SessionLog, a: number, b: number, now: number): SessionLog {
+  if (a === b || !s.plan[a] || !s.plan[b]) return s;
+  const used = new Set(s.plan.map((x) => x.group).filter(Boolean));
+  const group = s.plan[a].group ?? 'abcdefghijklmnopqrstuvwxyz'.split('').find((g) => !used.has(g)) ?? `g${now}`;
+  const plan = structuredClone(s.plan);
+  const [item] = plan.splice(b, 1);
+  const at = b < a ? a - 1 : a;
+  const end = blockOf(plan, at)[1];
+  plan[at].group = group;
+  plan.splice(end + 1, 0, { ...item, group });
+  return { ...s, plan: normalizeGroups(plan), updatedAt: now };
+}
+
+/** Takes exercise i out of its superset; it runs right after the others. */
+export function leaveSuperset(s: SessionLog, i: number, now: number): SessionLog {
+  if (!s.plan[i]?.group) return s;
+  const b = blockOf(s.plan, i)[1];
+  const plan = [...s.plan];
+  const [item] = plan.splice(i, 1);
+  plan.splice(b, 0, { ...item, group: undefined });
+  return { ...s, plan: normalizeGroups(plan), updatedAt: now };
 }
 
 export function restFor(s: SessionLog, st: Step, next: Step | null): number {
