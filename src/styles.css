@@ -17,6 +17,19 @@
   --c-bench: #8e9aae;
   --c-dead: #c9a15c;
   --hair: #2e3236;
+  /* One colour per project: Business red, École blue, Salle green, Perso amber. */
+  --biz: #ef5d5d;
+  --biz-tint: #321f20;
+  --biz-ink: #f2a3a3;
+  --ecole: #7fa7e8;
+  --ecole-tint: #1f2633;
+  --ecole-ink: #a7bde6;
+  --salle: #93c4a8;
+  --salle-tint: #1f2a24;
+  --salle-ink: #b5d6c3;
+  --perso: #e3b36a;
+  --perso-tint: #2e2819;
+  --perso-ink: #e9c98f;
   --glass: #222529;
   --glass-2: #2b2f34;
   --float: rgba(26, 28, 31, 0.96);
@@ -3683,7 +3696,7 @@ details textarea {
 }
 
 .p-ecole {
-  background: var(--amber);
+  background: var(--ecole);
 }
 
 .p-salle {
@@ -3691,7 +3704,7 @@ details textarea {
 }
 
 .p-perso {
-  background: var(--sky);
+  background: var(--perso);
 }
 
 .fab {
@@ -3932,4 +3945,389 @@ details textarea {
 
 .sport-seg + .screen {
   padding-top: 10px;
+}
+
+/* Tiles: the home screen and the projects of Tête, everything at a glance */
+
+.pc-biz { --pc: var(--biz); --pc-tint: var(--biz-tint); --pc-ink: var(--biz-ink); }
+.pc-ecole { --pc: var(--ecole); --pc-tint: var(--ecole-tint); --pc-ink: var(--ecole-ink); }
+.pc-salle { --pc: var(--salle); --pc-tint: var(--salle-tint); --pc-ink: var(--salle-ink); }
+.pc-perso { --pc: var(--perso); --pc-tint: var(--perso-tint); --pc-ink: var(--perso-ink); }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  min-height: 132px;
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--glass);
+  border: 1px solid var(--hair);
+  border-radius: 24px;
+  color: var(--ink);
+  transition: transform 0.16s var(--spring);
+}
+
+button.tile:active,
+.project-tile:active {
+  transform: scale(0.97);
+}
+
+.tile.span-2 {
+  grid-column: span 2;
+}
+
+.tile-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.tile-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tile-tag.good {
+  color: var(--good);
+}
+
+.tile-big {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.tile-big small {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-3);
+  letter-spacing: 0;
+}
+
+.tile-big.add {
+  color: var(--mint);
+  font-size: 22px;
+}
+
+.tile-foot {
+  margin-top: auto;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ink-2);
+}
+
+.tile-foot.good {
+  color: var(--good);
+}
+
+.clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bar {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--hair);
+  overflow: hidden;
+  margin: 8px 0 6px;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--mint);
+  transition: width 0.5s var(--spring);
+}
+
+.bar.amber i {
+  background: var(--perso);
+}
+
+.mini-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.mini-bar .bar {
+  flex: 1;
+  height: 6px;
+  margin: 0;
+}
+
+.spark {
+  width: 100%;
+  height: 40px;
+  margin: 4px 0;
+  overflow: visible;
+}
+
+.spark polyline {
+  stroke: var(--good);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.spark circle {
+  fill: var(--good);
+}
+
+.spark-empty {
+  height: 40px;
+}
+
+/* The red Lock-in tile */
+
+.lock-tile {
+  gap: 14px;
+  min-height: 0;
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--mint-ink);
+}
+
+.lock-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lock-tile .tile-tag {
+  opacity: 0.8;
+}
+
+.lock-big {
+  margin-top: 2px;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.week-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  flex: none;
+}
+
+.week-bars span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.week-bars i {
+  display: block;
+  width: 13px;
+  border-radius: 5px;
+  background: var(--mint-ink);
+  opacity: 0.45;
+}
+
+.week-bars .today i {
+  opacity: 1;
+}
+
+.week-bars .later i {
+  opacity: 0.18;
+}
+
+.week-bars small {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.lock-acts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.lock-act {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 46px;
+  border-radius: 14px;
+  background: var(--mint-ink);
+  color: var(--mint);
+  font-size: 15px;
+  font-weight: 700;
+  transition: transform 0.16s var(--spring);
+}
+
+.lock-act:active {
+  transform: scale(0.95);
+}
+
+/* The session tile */
+
+.session-tile {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  min-height: 0;
+}
+
+.session-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.session-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.chip-m {
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9px;
+  padding: 4px 8px;
+  background: var(--salle-tint);
+  color: var(--salle-ink);
+}
+
+.play {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--good);
+  color: #14201a;
+  transition: transform 0.16s var(--spring);
+}
+
+.play:active {
+  transform: scale(0.92);
+}
+
+/* Tête: one coloured tile per project */
+
+.project-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.project-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+  min-height: 132px;
+  padding: 14px 16px;
+  text-align: left;
+  border-radius: 24px;
+  border: 1px solid transparent;
+  background: var(--pc-tint);
+  color: var(--ink);
+  transition: transform 0.16s var(--spring), border-color 0.2s;
+}
+
+.project-tile.on {
+  border-color: var(--pc);
+}
+
+.pt-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pc-ink);
+}
+
+.pt-count {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pt-count small {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pc-ink);
+  opacity: 0.8;
+}
+
+.pt-next {
+  margin-top: auto;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--pc-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card.picked {
+  border-color: var(--pc);
+}
+
+.card.picked .eyebrow {
+  color: var(--pc-ink);
+}
+
+.today-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.today-progress .bar {
+  width: 72px;
+  height: 6px;
+  margin: 0;
+}
+
+.todo[class*='pc-'] .todo-check input:not(:checked) {
+  border-color: var(--pc);
+}
+
+.todo[class*='pc-'] .todo-check input:checked {
+  background: var(--pc);
+  border-color: var(--pc);
 }

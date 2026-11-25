@@ -21,7 +21,7 @@ export function TodoRow({ t, today, pinned }: { t: Todo; today: ISODate; pinned?
   const due = dueLabel(t, today);
   const stepsDone = t.steps.filter((s) => s.done).length;
   return (
-    <li className={`todo${t.doneAt ? ' done' : ''}${open ? ' open' : ''}`}>
+    <li className={`todo pc-${t.project}${t.doneAt ? ' done' : ''}${open ? ' open' : ''}`}>
       <div className="todo-row">
         <label className="todo-check">
           <input type="checkbox" checked={!!t.doneAt} onChange={() => patchTodo(t.id, { doneAt: t.doneAt ? undefined : Date.now() })} aria-label={`${t.doneAt ? 'Décocher' : 'Cocher'} : ${t.title}`} />
@@ -103,6 +103,21 @@ function IdeaRow({ t }: { t: Todo }) {
   );
 }
 
+/** One simple line icon per project, drawn in the project's colour. */
+function ProjectIcon({ project }: { project: Project }) {
+  const path = {
+    biz: 'M3 17 9 11l4 4 8-8M15 7h6v6',
+    ecole: 'M2 9 12 4l10 5-10 5zM6 11v5c3 2 9 2 12 0v-5',
+    salle: 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12',
+    perso: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4-6 8-6s7 2 8 6',
+  }[project];
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={path} />
+    </svg>
+  );
+}
+
 function Group({ project, items, children }: { project: Project; items: number; children: React.ReactNode }) {
   const [open, setOpen] = useState(project === 'biz');
   return (
@@ -124,17 +139,19 @@ export function Head() {
   const [view, setView] = useState<'todo' | 'idea'>('todo');
   const todos = useMemo(() => Object.values(all), [all]);
   const list = useMemo(() => todayList(todos, today, startOf(today)), [todos, today]);
-  const pinnedIds = useMemo(() => new Set(list.map((t) => t.id)), [list]);
-  const tasks = useMemo(() => byProject(todos, 'task', pinnedIds), [todos, pinnedIds]);
+  const open = useMemo(() => byProject(todos, 'task', new Set()), [todos]);
   const ideas = useMemo(() => byProject(todos, 'idea', new Set()), [todos]);
   const ideaCount = PROJECTS.reduce((a, p) => a + ideas[p].length, 0);
   const left = list.filter((t) => !t.doneAt).length;
+  const done = list.length - left;
+  const [picked, setPicked] = useState<Project | null>(null);
+  const nextOf = (p: Project) => list.find((t) => !t.doneAt && t.project === p) ?? open[p][0];
 
   return (
     <div className="screen">
       <header className="head">
         <div>
-          <p>{view === 'todo' ? (list.length ? `${left} sur ${list.length} à faire aujourd'hui` : 'Ta to-do') : 'Tout ce qui te passe par la tête'}</p>
+          <p>{view === 'todo' ? (list.length ? `${done} ${done > 1 ? 'faites' : 'faite'} · ${left} à faire aujourd'hui` : 'Tes projets') : 'Tout ce qui te passe par la tête'}</p>
           <h1>Tête</h1>
         </div>
       </header>
@@ -150,8 +167,59 @@ export function Head() {
 
       {view === 'todo' ? (
         <>
+          <div className="project-tiles">
+            {PROJECTS.map((p) => {
+              const next = nextOf(p);
+              return (
+                <button key={p} type="button" className={`project-tile pc-${p}${picked === p ? ' on' : ''}`} onClick={() => setPicked(picked === p ? null : p)} aria-expanded={picked === p}>
+                  <span className="pt-name">
+                    <ProjectIcon project={p} />
+                    {PROJECT_LABEL[p]}
+                  </span>
+                  <span className="pt-count num">
+                    {open[p].length}
+                    <small> à faire</small>
+                  </span>
+                  <span className="pt-next">{next ? next.title : 'Rien en attente'}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {picked ? (
+            <section className={`card picked pc-${picked}`}>
+              <div className="row-head">
+                <h2 className="eyebrow">{PROJECT_LABEL[picked]}</h2>
+                <button type="button" className="chip" onClick={() => setPicked(null)}>
+                  Fermer
+                </button>
+              </div>
+              {open[picked].length ? (
+                <ul className="todos">
+                  {open[picked].map((t) => (
+                    <TodoRow key={t.id} t={t} today={today} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="empty">Rien en attente ici. Dicte ce que tu as en tête.</p>
+              )}
+            </section>
+          ) : null}
+
           <section className="card today-list">
-            <h2 className="eyebrow">Aujourd'hui</h2>
+            <div className="row-head">
+              <h2 className="eyebrow">Aujourd'hui</h2>
+              {list.length ? (
+                <span className="today-progress">
+                  <span className="bar" aria-hidden="true">
+                    <i style={{ width: `${(done / list.length) * 100}%` }} />
+                  </span>
+                  <span className="num muted">
+                    {done}/{list.length}
+                  </span>
+                </span>
+              ) : null}
+            </div>
             {list.length ? (
               <ul className="todos">
                 {list.map((t) => (
@@ -159,16 +227,9 @@ export function Head() {
                 ))}
               </ul>
             ) : (
-              <p className="empty">Rien pour aujourd'hui. Touche une tâche plus bas puis « Pour aujourd'hui », ou dicte ce que tu dois faire.</p>
+              <p className="empty">Rien pour aujourd'hui. Touche un projet, ouvre une tâche puis « Pour aujourd'hui », ou dicte ce que tu dois faire.</p>
             )}
           </section>
-          {PROJECTS.filter((p) => tasks[p].length).map((p) => (
-            <Group key={p} project={p} items={tasks[p].length}>
-              {tasks[p].map((t) => (
-                <TodoRow key={t.id} t={t} today={today} />
-              ))}
-            </Group>
-          ))}
           {!todos.some((t) => t.kind === 'task') ? <p className="empty center">Dicte tout ce que tu as en tête avec le micro : je range les tâches ici.</p> : null}
         </>
       ) : (
