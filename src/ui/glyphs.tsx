@@ -144,6 +144,91 @@ export const GlyphStop = (p: P) => (
   </G>
 );
 
+export const GlyphChart = (p: P) => (
+  <G {...p}>
+    <rect x="3.5" y="3.5" width="17" height="17" rx="5.5" fill="currentColor" opacity={SOFT} />
+    <path d="M7.5 15.5l3-3.4 2.6 2 3.6-4.8" {...line} strokeWidth="2.1" />
+  </G>
+);
+
+export const GlyphLayers = (p: P) => (
+  <G {...p}>
+    <path d="M12 12.6 3.4 8.4 12 4.2l8.6 4.2z" fill="currentColor" />
+    <path d="M4.6 12.2 12 15.8l7.4-3.6M4.6 15.8 12 19.4l7.4-3.6" {...line} strokeWidth="1.9" opacity={0.55} />
+  </G>
+);
+
+export const GlyphBolt = (p: P) => (
+  <G {...p}>
+    <circle cx="12" cy="12" r="9" fill="currentColor" opacity={SOFT} />
+    <path d="M13 4.6 7.6 13h4.2l-1 6.4L16.4 11h-4.2z" fill="currentColor" />
+  </G>
+);
+
+export const GlyphSteps = (p: P) => (
+  <G {...p}>
+    <path d="M7.4 3.6c1.9 0 2.9 2.2 2.9 4.6s-.9 4-2.6 4.2c-1.8.2-2.8-1.6-2.9-3.8-.1-2.6 1-5 2.6-5z" fill="currentColor" opacity={SOFT} />
+    <path d="M5.3 14.3l4.5-.6.3 2.2c.2 1.3-.7 2.4-2 2.5-1.3.2-2.4-.7-2.5-2z" fill="currentColor" opacity={SOFT} />
+    <path d="M16.6 7.4c1.9 0 2.9 2.2 2.9 4.6s-.9 4-2.6 4.2c-1.8.2-2.8-1.6-2.9-3.8-.1-2.6 1-5 2.6-5z" fill="currentColor" />
+    <path d="M14.4 18.1l4.5-.6.3 1.6c.2 1.3-.7 2.2-1.9 2.4-1.3.2-2.4-.6-2.6-1.9z" fill="currentColor" />
+  </G>
+);
+
+export const GlyphTrophy = (p: P) => (
+  <G {...p}>
+    <path d="M7 3.8h10v5.4a5 5 0 0 1-10 0z" fill="currentColor" />
+    <path d="M7 5.6H4.4v1.6A3.2 3.2 0 0 0 7.6 10.4M17 5.6h2.6v1.6a3.2 3.2 0 0 1-3.2 3.2" {...line} strokeWidth="1.8" />
+    <path d="M12 14.2v3.2" {...line} strokeWidth="2" />
+    <rect x="7.4" y="17.6" width="9.2" height="3" rx="1.5" fill="currentColor" opacity={SOFT} />
+  </G>
+);
+
+export const GlyphCalendar = (p: P) => (
+  <G {...p}>
+    <rect x="3.5" y="5" width="17" height="15.5" rx="4.5" fill="currentColor" opacity={SOFT} />
+    <path d="M8 3.2v3.6M16 3.2v3.6" {...line} strokeWidth="2" />
+    <rect x="7" y="11" width="4" height="4" rx="1.3" fill="currentColor" />
+  </G>
+);
+
+export const GlyphTarget = (p: P) => (
+  <G {...p}>
+    <circle cx="12" cy="12" r="9" fill="currentColor" opacity={SOFT} />
+    <circle cx="12" cy="12" r="5" {...line} strokeWidth="1.9" />
+    <circle cx="12" cy="12" r="1.9" fill="currentColor" />
+  </G>
+);
+
+export const GlyphQuote = (p: P) => (
+  <G {...p}>
+    <path d="M4 7.2A3.7 3.7 0 0 1 7.7 3.5h8.6A3.7 3.7 0 0 1 20 7.2v6.1a3.7 3.7 0 0 1-3.7 3.7h-5.6L6.4 20.4v-3.6A3.7 3.7 0 0 1 4 13.3z" fill="currentColor" opacity={SOFT} />
+    <path d="M8.4 9.2h7.2M8.4 12.4h4.6" {...line} strokeWidth="2" />
+  </G>
+);
+
+export const GlyphSpark = (p: P) => (
+  <G {...p}>
+    <path d="M10.4 3.6l1.7 4.6 4.6 1.7-4.6 1.7-1.7 4.6-1.7-4.6-4.6-1.7 4.6-1.7z" fill="currentColor" />
+    <path d="M17.4 13.2l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z" fill="currentColor" opacity={0.55} />
+  </G>
+);
+
+export const GlyphChat = (p: P) => (
+  <G {...p}>
+    <path d="M12 3.6c4.9 0 8.6 3.3 8.6 7.5s-3.7 7.5-8.6 7.5c-.9 0-1.8-.1-2.6-.3L5 20.2l.9-3.8c-1.6-1.4-2.5-3.2-2.5-5.3 0-4.2 3.7-7.5 8.6-7.5z" fill="currentColor" opacity={SOFT} />
+    <circle cx="8.4" cy="11.1" r="1.3" fill="currentColor" />
+    <circle cx="12" cy="11.1" r="1.3" fill="currentColor" />
+    <circle cx="15.6" cy="11.1" r="1.3" fill="currentColor" />
+  </G>
+);
+
+export const GlyphClock = (p: P) => (
+  <G {...p}>
+    <circle cx="12" cy="12" r="9" fill="currentColor" opacity={SOFT} />
+    <path d="M12 7.2V12l3.2 2" {...line} strokeWidth="2.2" />
+  </G>
+);
+
 export const PROJECT_GLYPH: Record<Project, (p: P) => React.ReactElement> = {
   biz: GlyphBiz,
   ecole: GlyphSchool,

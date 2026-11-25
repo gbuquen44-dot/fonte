@@ -6,6 +6,8 @@ import type { DayLog } from '../core/types';
 import { fr1, int, Keypad, kg, Ring, Segmented, Sheet, SheetHead } from '../ui/controls';
 import { TimeChart } from '../ui/Chart';
 import { useToday } from '../ui/hooks';
+import { CardHead } from '../ui/CardHead';
+import { GlyphBowl, GlyphCalendar, GlyphDumbbell, GlyphScale, GlyphTarget } from '../ui/glyphs';
 
 function Bar({ label, value, target, color }: { label: string; value?: number; target: number; color: string }) {
   return (
@@ -64,7 +66,7 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
       </header>
 
       <section className="card fuel">
-        <Ring value={day?.kcal ?? 0} max={target} size={132} width={13}>
+        <Ring value={day?.kcal ?? 0} max={target} size={132} width={12} color="var(--perso)">
           <b className="num big">{int(Math.abs(left))}</b>
           <small>{left >= 0 ? 'à manger' : 'en trop'}</small>
         </Ring>
@@ -72,9 +74,9 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
           <p className="fuel-target">
             Objectif <b className="num">{int(target)} kcal</b>
           </p>
-          <Bar label="Protéines" value={day?.protein} target={macros.protein} color="var(--sky)" />
-          <Bar label="Glucides" value={day?.carbs} target={macros.carbs} color="var(--mint)" />
-          <Bar label="Lipides" value={day?.fat === undefined ? undefined : day.fat + UNLOGGED_FAT} target={macros.fat} color="var(--amber)" />
+          <Bar label="Protéines" value={day?.protein} target={macros.protein} color="var(--ecole)" />
+          <Bar label="Glucides" value={day?.carbs} target={macros.carbs} color="var(--salle)" />
+          <Bar label="Lipides" value={day?.fat === undefined ? undefined : day.fat + UNLOGGED_FAT} target={macros.fat} color="var(--perso)" />
         </div>
       </section>
       <p className="source">
@@ -85,7 +87,7 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
       </button>
 
       <section className="card">
-        <h2>Ton plan de calories</h2>
+        <CardHead glyph={GlyphCalendar} tone="perso" title="Ton plan de calories" />
         <ol className="steps">
           {plan.map((s) => {
             const state = s.from > today ? 'next' : s === nowStep ? 'now' : 'past';
@@ -113,13 +115,13 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
       </section>
 
       <section className="card">
-        <h2>Avant la séance</h2>
+        <CardHead glyph={GlyphDumbbell} tone="salle" title="Avant la séance" />
         <p>{p.usualMeal?.label ?? 'Ton repas habituel'}, environ 1 h avant.</p>
         <p className="muted">C'est le bon repas : assez de glucides et facile à digérer. Garde le gras sous 30 g dans ce repas, il ralentit la digestion.</p>
       </section>
 
       <section className="card">
-        <h2>Tes repères</h2>
+        <CardHead glyph={GlyphBowl} tone="perso" title="Tes repères" />
         <ul className="plain">
           <li>
             <b>Protéines : {macros.protein} g.</b> Tu y es déjà, garde ce cap.
@@ -134,12 +136,12 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
       </section>
 
       <section className="card">
-        <h2>Poids</h2>
+        <CardHead glyph={GlyphScale} tone="salle" title="Poids" />
         {gel ? <p className="muted">Pendant les hausses de calories, ton poids monte surtout par l'eau. On ne le lit pas avant le {dayMonth(gel)}.</p> : null}
         <TimeChart
           series={[
             { id: 'raw', label: 'Pesées', color: 'var(--ink-3)', points: raw, kind: 'dots' },
-            { id: 'trend', label: 'Tendance', color: 'var(--mint)', points: trend },
+            { id: 'trend', label: 'Tendance', color: 'var(--salle)', points: trend },
           ]}
           from={from}
           to={today}
@@ -149,7 +151,7 @@ export function Nutrition({ onEntry }: { onEntry(): void }) {
       </section>
 
       <section className="card">
-        <h2>Ton maintien</h2>
+        <CardHead glyph={GlyphTarget} tone="biz" title="Ton maintien" />
         <p className="metric num">{int(Math.round(maintenance.value / 10) * 10)} kcal</p>
         <p className="muted">
           Calories où ton poids ne bouge pas, entre {int(Math.round(maintenance.low / 10) * 10)} et {int(Math.round(maintenance.high / 10) * 10)} kcal. {maintenance.source === 'data' ? 'Calculé sur tes 28 derniers jours.' : 'Estimation de départ, elle s\'affine avec tes données.'}

@@ -109,7 +109,7 @@ function Spark({ values }: { values: number[] }) {
 function Ring({ value }: { value: number }) {
   const c = 2 * Math.PI * 15;
   return (
-    <svg className="ring" width="38" height="38" viewBox="0 0 38 38" aria-hidden="true">
+    <svg className="todo-ring" width="38" height="38" viewBox="0 0 38 38" aria-hidden="true">
       <circle cx="19" cy="19" r="15" className="ring-bg" />
       <circle cx="19" cy="19" r="15" className="ring-fg" strokeDasharray={`${Math.max(0.001, Math.min(1, value)) * c} ${c}`} />
     </svg>

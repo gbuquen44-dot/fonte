@@ -14,6 +14,8 @@ import { fr1, hours, int, kg, Segmented } from '../ui/controls';
 import { IconChevron } from '../ui/icons';
 import { useStored, useToday } from '../ui/hooks';
 import { WeightSheet } from './Weight';
+import { CardHead } from '../ui/CardHead';
+import { GlyphBolt, GlyphBowl, GlyphChart, GlyphHeart, GlyphLayers, GlyphMoon, GlyphScale, GlyphSteps, GlyphTrophy } from '../ui/glyphs';
 
 const COLORS: Record<LiftKey, string> = { squat: 'var(--c-squat)', bench: 'var(--c-bench)', deadlift: 'var(--c-dead)' };
 
@@ -81,7 +83,7 @@ export function Progress() {
       </header>
 
       <section className="card">
-        <h2>Tes exercices</h2>
+        <CardHead glyph={GlyphChart} tone="salle" title="Tes exercices" />
         <p className="muted">
           {tracked ? `${ups} sur ${tracked} en progrès depuis le début de la phase. ` : ''}Ta meilleure série de la dernière séance, comparée à la première.
         </p>
@@ -96,7 +98,7 @@ export function Progress() {
       </section>
 
       <section className="card">
-        <h2>Séries par muscle</h2>
+        <CardHead glyph={GlyphLayers} tone="biz" title="Séries par muscle" />
         <p className="muted">Sur 7 jours. La zone claire est celle où un muscle progresse le mieux.</p>
         <VolumeBars volume={volume} />
       </section>
@@ -120,21 +122,20 @@ export function Progress() {
       </ul>
 
       <section className="card">
-        <h2>Force</h2>
+        <CardHead glyph={GlyphBolt} tone="perso" title="Force" />
         <TimeChart series={liftSeries} from={from} to={today} format={(n) => `${int(n)} kg`} empty="Ta courbe démarre avec ta première série lourde." />
       </section>
 
       <section className="card">
-        <div className="card-head">
-          <h2>Poids</h2>
+        <CardHead glyph={GlyphScale} tone="salle" title="Poids">
           <button type="button" className="card-more" onClick={() => setWeightOpen(true)}>
             Détail <IconChevron size={16} />
           </button>
-        </div>
+        </CardHead>
         <TimeChart
           series={[
             { id: 'raw', label: 'Pesées', color: 'var(--ink-3)', points: weights.map((w) => ({ date: w.date, y: w.weight })), kind: 'dots' },
-            { id: 'trend', label: `Moyenne ${trendDays} jours`, color: 'var(--mint)', points: rollingMean(weights, trendDays).map((t) => ({ date: t.date, y: t.value })) },
+            { id: 'trend', label: `Moyenne ${trendDays} jours`, color: 'var(--salle)', points: rollingMean(weights, trendDays).map((t) => ({ date: t.date, y: t.value })) },
           ]}
           from={from}
           to={today}
@@ -145,11 +146,11 @@ export function Progress() {
       <WeightSheet open={weightOpen} onClose={() => setWeightOpen(false)} days={trendDays} onDays={setTrendDays} />
 
       <section className="card">
-        <h2>Sommeil</h2>
+        <CardHead glyph={GlyphMoon} tone="ecole" title="Sommeil" />
         <TimeChart
           series={[
-            { id: 'night', label: 'Nuit', color: 'rgba(143,176,255,.42)', points: sleep, kind: 'bars' },
-            { id: 'avg', label: 'Moyenne 7 jours', color: 'var(--sky)', points: mean7(sleep) },
+            { id: 'night', label: 'Nuit', color: 'rgba(125,156,212,.38)', points: sleep, kind: 'bars' },
+            { id: 'avg', label: 'Moyenne 7 jours', color: 'var(--ecole)', points: mean7(sleep) },
           ]}
           from={from}
           to={today}
@@ -160,23 +161,23 @@ export function Progress() {
       </section>
 
       <section className="card">
-        <h2>Forme du matin</h2>
+        <CardHead glyph={GlyphHeart} tone="biz" title="Forme du matin" />
         <TimeChart series={[{ id: 'rec', label: 'Forme', color: 'var(--mint)', points: series('recovery') }]} from={from} to={today} floor={0} format={(n) => `${fr1(n)}/10`} empty="Ta note du matin s'affichera ici." />
       </section>
 
       <section className="card">
-        <h2>Calories</h2>
-        <TimeChart series={[{ id: 'kcal', label: 'Calories', color: 'var(--mint)', points: series('kcal') }]} from={from} to={today} format={(n) => `${int(n)} kcal`} reference={{ y: p.maintenance, label: 'maintien' }} empty="Tes calories apparaissent dès que Yazio les envoie." />
+        <CardHead glyph={GlyphBowl} tone="perso" title="Calories" />
+        <TimeChart series={[{ id: 'kcal', label: 'Calories', color: 'var(--perso)', points: series('kcal') }]} from={from} to={today} format={(n) => `${int(n)} kcal`} reference={{ y: p.maintenance, label: 'maintien' }} empty="Tes calories apparaissent dès que Yazio les envoie." />
       </section>
 
       <section className="card">
-        <h2>Pas</h2>
-        <TimeChart series={[{ id: 'steps', label: 'Pas', color: 'rgba(255,196,107,.55)', points: series('steps'), kind: 'bars' }]} from={from} to={today} floor={0} format={(n) => int(n)} reference={{ y: 8000, label: '8 000' }} empty="Tes pas apparaissent dès que Yazio les envoie." />
+        <CardHead glyph={GlyphSteps} tone="ecole" title="Pas" />
+        <TimeChart series={[{ id: 'steps', label: 'Pas', color: 'rgba(125,156,212,.5)', points: series('steps'), kind: 'bars' }]} from={from} to={today} floor={0} format={(n) => int(n)} reference={{ y: 8000, label: '8 000' }} empty="Tes pas apparaissent dès que Yazio les envoie." />
       </section>
 
 
       <section className="card">
-        <h2>Tes records</h2>
+        <CardHead glyph={GlyphTrophy} tone="perso" title="Tes records" />
         {prs.length ? (
           <ul className="prs">
             {prs.map((b) => (
@@ -221,7 +222,7 @@ function ExerciseRow({ e, open, onToggle, sessions, today }: { e: ExerciseProgre
       {open ? (
         <div className="prog-chart">
           <TimeChart
-            series={[{ id: e.exId, label: 'Charge de ta meilleure série', color: 'var(--mint)', points }]}
+            series={[{ id: e.exId, label: 'Charge de ta meilleure série', color: 'var(--salle)', points }]}
             from={addDays(today, -120)}
             to={today}
             height={140}

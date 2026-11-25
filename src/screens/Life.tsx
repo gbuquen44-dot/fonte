@@ -2,7 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { getClaudeKey, removeNote, retryNote, useApp } from '../state/store';
 import { addDays, longDate, type ISODate } from '../core/dates';
 import { formatMinutes, PROJECT_SHORT, PROJECTS, workMinutes, type Note } from '../core/head';
-import { IconBack, IconChevron, IconCoach, IconGear } from '../ui/icons';
+import { IconBack, IconChevron } from '../ui/icons';
+import { CardHead } from '../ui/CardHead';
+import { GlyphChat, GlyphClock, GlyphHeart, GlyphQuote, GlyphSliders, GlyphSpark } from '../ui/glyphs';
 import { useToday } from '../ui/hooks';
 import { Coach } from './Coach';
 
@@ -73,7 +75,7 @@ export function Life({ onSettings }: { onSettings(): void }) {
           <h1>Vie</h1>
         </div>
         <button type="button" className="round big" onClick={onSettings} aria-label="Réglages">
-          <IconGear size={22} />
+          <GlyphSliders size={20} />
         </button>
       </header>
 
@@ -87,26 +89,41 @@ export function Life({ onSettings }: { onSettings(): void }) {
         </button>
       </div>
 
-      <section className="card life-stats">
-        <div>
-          <small>Travail</small>
-          <b className="num">{work.total ? formatMinutes(work.total) : '—'}</b>
-          <span className="muted">
-            {PROJECTS.filter((p) => work.by[p])
-              .map((p) => `${PROJECT_SHORT[p]} ${formatMinutes(work.by[p])}`)
-              .join(' · ')}
+      <div className="tiles">
+        <section className="tile">
+          <span className="tile-head">
+            <span className="tile-ic pc-biz">
+              <GlyphClock size={17} />
+            </span>
+            Travail
           </span>
-        </div>
-        <div>
-          <small>Forme</small>
-          <b className="num">{day?.pulses?.length ? day.pulses.map((p) => p.energy).filter(Boolean).join(' → ') || '—' : day?.recovery ? `${day.recovery}/10` : '—'}</b>
-          <span className="muted">{day?.pulses?.length ? `${day.pulses.length} ${day.pulses.length > 1 ? 'points' : 'point'} dans la journée` : 'Dis-la en dictant'}</span>
-        </div>
-      </section>
+          <span className="tile-big num">{work.total ? formatMinutes(work.total) : '0 min'}</span>
+          <span className="work-split" aria-hidden="true">
+            {work.total ? PROJECTS.filter((p) => work.by[p]).map((p) => <i key={p} className={`pc-${p}`} style={{ flexGrow: work.by[p] }} />) : <i className="none" />}
+          </span>
+          <span className="tile-foot">
+            {work.total
+              ? PROJECTS.filter((p) => work.by[p])
+                  .map((p) => `${PROJECT_SHORT[p]} ${formatMinutes(work.by[p])}`)
+                  .join(' · ')
+              : 'Lance un Lock-in pour compter'}
+          </span>
+        </section>
+        <section className="tile">
+          <span className="tile-head">
+            <span className="tile-ic pc-salle">
+              <GlyphHeart size={17} />
+            </span>
+            Forme
+          </span>
+          <span className="tile-big num">{day?.pulses?.length ? day.pulses.map((p) => p.energy).filter(Boolean).join(' → ') || '—' : day?.recovery ? `${day.recovery}/10` : '—'}</span>
+          <span className="tile-foot">{day?.pulses?.length ? `${day.pulses.length} ${day.pulses.length > 1 ? 'points' : 'point'} dans la journée` : 'Dis-la en dictant'}</span>
+        </section>
+      </div>
 
       {day?.facts?.length ? (
         <section className="card">
-          <h2 className="eyebrow">Ce que je retiens</h2>
+          <CardHead glyph={GlyphSpark} tone="perso" title="Ce que je retiens" />
           <ul className="facts">
             {day.facts.map((f, i) => (
               <li key={i}>
@@ -118,7 +135,7 @@ export function Life({ onSettings }: { onSettings(): void }) {
       ) : null}
 
       <section className="card">
-        <h2 className="eyebrow">Ce que tu m'as dit</h2>
+        <CardHead glyph={GlyphQuote} tone="ecole" title="Ce que tu m'as dit" />
         {notes.length ? (
           <ul className="notes">
             {notes.map((n) => (
@@ -135,8 +152,8 @@ export function Life({ onSettings }: { onSettings(): void }) {
       <ul className="me-list card">
         <li>
           <button type="button" onClick={() => setCoach(true)}>
-            <span className="me-icon">
-              <IconCoach size={22} />
+            <span className="tile-ic pc-biz">
+              <GlyphChat size={17} />
             </span>
             <span className="me-text">
               <strong>Coach</strong>

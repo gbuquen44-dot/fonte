@@ -12,6 +12,7 @@ import { useToday } from '../ui/hooks';
 import { DayEditor } from './Editor';
 import { prepareAudio } from '../ui/sound';
 import { sameSession } from './Today';
+import { GlyphDumbbell } from '../ui/glyphs';
 
 
 function minutes(sec: number) {
@@ -127,6 +128,9 @@ function DayCard({ plan, date, isToday, done, open, onToggle, tm, history, busy,
   return (
     <li className={`card daycard${open ? ' open' : ''}${isToday ? ' today' : ''}`}>
       <button type="button" className="daycard-head" aria-expanded={open} onClick={onToggle}>
+        <span className="tile-ic big pc-salle">
+          <GlyphDumbbell size={22} />
+        </span>
         <span className="daycard-day">
           <small>
             {DAY_LABEL[dayKey(date)]} {shortDate(date)}

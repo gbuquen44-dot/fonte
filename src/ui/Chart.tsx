@@ -219,7 +219,7 @@ export function TotalRoad({ current, start, milestones }: { current: number; sta
 export function VolumeBars({ volume }: { volume: VolumeMap }) {
   return (
     <ul className="volume">
-      {VOLUME_TABLE.map((r) => {
+      {VOLUME_TABLE.filter((r) => r.muscle !== 'mollets').map((r) => {
         const v = volume[r.muscle as Muscle] ?? 0;
         const scale = (n: number) => `${Math.min(100, (n / r.cap) * 100)}%`;
         const state = v < r.min ? 'under' : v > r.cap ? 'over' : 'ok';

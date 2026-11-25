@@ -381,10 +381,11 @@ code {
 }
 
 .card h2 {
-  font-size: 20px;
-  line-height: 1.22;
-  font-weight: 700;
-  letter-spacing: -0.012em;
+  font-family: var(--round);
+  font-size: 17px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   margin-bottom: 8px;
 }
 
@@ -907,10 +908,11 @@ button.card:active {
 }
 
 .daycard-day strong {
-  font-size: 20px;
+  font-family: var(--round);
+  font-size: 19px;
   line-height: 1.24;
-  font-weight: 700;
-  letter-spacing: -0.012em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .daycard-chevron {
@@ -4121,13 +4123,13 @@ button.tile:active,
   background: var(--pc);
 }
 
-.ring {
+.todo-ring {
   flex: none;
   transform: rotate(-90deg);
   margin-top: 6px;
 }
 
-.ring circle {
+.todo-ring circle {
   fill: none;
   stroke-width: 4;
   stroke-linecap: round;
@@ -4493,4 +4495,47 @@ button.tile:active,
   .tiles > * {
     animation: none;
   }
+}
+
+/* Card titles with their glyph, for Vie and Sport */
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.card .card-title h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.card-title .card-more {
+  flex: none;
+}
+
+.work-split {
+  display: flex;
+  gap: 3px;
+  height: 6px;
+  margin-top: 10px;
+}
+
+.work-split i {
+  display: block;
+  flex: 1 1 0;
+  border-radius: 3px;
+  background: var(--pc);
+}
+
+.work-split i.none {
+  background: var(--hair);
+}
+
+.me-list .tile-ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
 }
