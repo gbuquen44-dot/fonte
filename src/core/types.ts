@@ -75,6 +75,10 @@ export interface Slot {
   rpe?: number;
   /** As many reps as he can. */
   max?: boolean;
+  /** Strength format: one heavy set of this many reps first, then the sets above at about 90 % of it. */
+  top?: number;
+  /** Reps left in the tank on that heavy set, as an RPE. */
+  topRpe?: number;
   /** Slots sharing a group next to each other run as a superset. */
   group?: string;
   note?: string;

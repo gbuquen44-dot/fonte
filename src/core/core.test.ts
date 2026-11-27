@@ -836,13 +836,14 @@ describe('weight', () => {
 });
 
 describe('muscle-building loads', () => {
-  it('starts squat and bench from the max, not from his old heavy singles', () => {
+  it('starts the heavy squat triple from the max, not from his old heavy singles', () => {
     const s = createSession(buildSession(0, 2, 'fri'), '2026-12-04', 'm1', 0);
     const old = createSession(buildSession(1, 3, 'fri'), '2026-11-20', 'o1', 0);
     const heavy = logSet(old, { ex: 0, set: 4 }, { load: 125, reps: 1 }, 1);
     const first = prefill(s, { ex: 0, set: 0 }, TM, [{ ...heavy, status: 'done' }]);
-    expect(first.load).toBeLessThan(110);
-    expect(first.load).toBeGreaterThan(90);
+    expect(s.plan[0].sets[0]).toMatchObject({ type: 'top', reps: 3 });
+    expect(first.load).toBeLessThan(125);
+    expect(first.load).toBeGreaterThan(100);
     expect(first.first).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import type { EquipKind, LiftKey, LoggedSet, PlannedExercise, PlannedSession, PlannedSet, PostCheck, Scheme, SessionLog } from './types';
 import { EXERCISES } from '../data/exercises';
-import { detectPRs, floorLoad, roundLoad } from './lifting';
+import { currentE1rm, detectPRs, floorLoad, roundLoad } from './lifting';
 import { exactRpe, pctForRepsToFailure } from './program';
 import type { ISODate } from './dates';
 import { normalizeGroups } from './edit';
@@ -139,6 +139,8 @@ export function prefill(s: SessionLog, st: Step, tm: Record<LiftKey, number>, hi
     return { load, reps: ps.reps, pct: ps.pct };
   }
 
+  if (ps.type === 'top' || ps.type === 'work') return strengthPrefill(s.sets, ex.exId, ps, tm, history);
+
   const here = s.sets.filter((x) => x.exId === ex.exId);
   const lift = liftOf(ex.exId);
   const last = lastSetsOf(ex.exId, history, !!lift);
@@ -170,6 +172,66 @@ export function prefill(s: SessionLog, st: Step, tm: Record<LiftKey, number>, hi
   const goal = Math.min(same.reps + 1, top);
   const was = same.left !== undefined && same.right !== undefined ? `gauche ${kgText(same.left)}, droite ${kgText(same.right)} kg` : `${kgText(same.load)} kg`;
   return withSides({ load: same.load, reps: goal, hint: goal > same.reps ? `La dernière fois : ${same.reps} reps. Vise ${goal}.` : `La dernière fois : ${was} × ${same.reps}.` }, same);
+}
+
+/** The back-off sets of the strength format, as a share of the heavy set. */
+export const BACKOFF = 0.9;
+
+/** Load for reps at an RPE, from an estimated max (Brzycki on reps + reps in reserve). */
+const loadFor = (max: number, reps: number, rpe: number) => roundLoad((max * (37 - (reps + 10 - rpe))) / 36, 2.5);
+
+/** Sets of one type in the last muscle-building session that had them. */
+function lastOfType(exId: string, type: 'top' | 'work', history: SessionLog[]): LoggedSet[] {
+  for (const h of [...history].sort((a, b) => b.startedAt - a.startedAt)) {
+    if (h.block !== 0) continue;
+    const sets = h.sets.filter((x) => x.exId === exId && x.type === type && !x.failed);
+    if (sets.length) return sets;
+  }
+  return [];
+}
+
+/** Strength format: a heavy set that moves up when it was easy, then sets at 90 % of it. */
+function strengthPrefill(logged: LoggedSet[], exId: string, ps: PlannedSet, tm: Record<LiftKey, number>, history: SessionLog[]): Prefill {
+  const today = logged.filter((x) => x.exId === exId && !x.failed);
+  const step = EXERCISES[exId]?.step ?? 2.5;
+  const lift = liftOf(exId);
+  const max = lift ? currentE1rm(history, lift, tm[lift]) : 0;
+  const rpe = ps.rpe ?? 8;
+
+  if (ps.type === 'top') {
+    const again = today.filter((x) => x.type === 'top').pop();
+    if (again) return { load: again.load, reps: ps.reps };
+    const [last] = lastOfType(exId, 'top', history);
+    if (last) {
+      const easy = last.reps >= ps.reps && last.rpe !== undefined && last.rpe <= rpe;
+      const was = `${kgText(last.load)} kg × ${last.reps}${last.rpe !== undefined ? ` à RPE ${kgText(last.rpe)}` : ''}`;
+      return easy
+        ? { load: last.load + step, reps: ps.reps, hint: `La dernière fois : ${was}. +${kgText(step)} kg.` }
+        : { load: last.load, reps: ps.reps, hint: `La dernière fois : ${was}. Même charge.` };
+    }
+    if (max) return { load: loadFor(max, ps.reps, rpe), reps: ps.reps, first: true, hint: 'Charge estimée sur tes dernières séances : ajuste à l\'échauffement.' };
+    return { load: 0, reps: ps.reps, first: true, hint: 'Première fois : mets ta charge, l\'appli la retient.' };
+  }
+
+  const prev = today.filter((x) => x.type === 'work').pop();
+  if (prev) return { load: prev.load, reps: ps.reps };
+  const top = today.filter((x) => x.type === 'top').pop();
+  if (top) {
+    return { load: roundLoad(top.load * BACKOFF, 2.5), reps: ps.reps, hint: `${Math.round(BACKOFF * 100)} % de ta série lourde (${kgText(top.load)} kg).` };
+  }
+  const [last] = lastOfType(exId, 'work', history);
+  if (last) return { load: last.load, reps: ps.reps, hint: `La dernière fois : ${kgText(last.load)} kg × ${last.reps}.` };
+  return { load: max ? loadFor(max, ps.reps, rpe) : 0, reps: ps.reps, first: true };
+}
+
+/** Loads the programme shows for the strength format before the session starts. */
+export function strengthLoads(e: PlannedExercise, tm: Record<LiftKey, number>, history: SessionLog[]): { top?: number; work?: number } {
+  const top = e.sets.find((x) => x.type === 'top');
+  const work = e.sets.find((x) => x.type === 'work');
+  const t = top ? strengthPrefill([], e.exId, top, tm, history).load : undefined;
+  const last = lastOfType(e.exId, 'work', history)[0];
+  const w = last ? last.load : t ? roundLoad(t * BACKOFF, 2.5) : work ? strengthPrefill([], e.exId, work, tm, history).load : undefined;
+  return { top: t || undefined, work: w || undefined };
 }
 
 /** Heavy sets where the reps left in the tank are worth noting. */

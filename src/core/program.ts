@@ -360,7 +360,7 @@ export const DEFAULT_MUSCU: Record<'tue' | 'wed' | 'fri' | 'sat' | 'sun', DayPla
     title: 'Jambes',
     subtitle: 'Quadriceps d\'abord, ischios, fessiers',
     slots: [
-      slot('squat', 4, 6, 8, { rpe: 8 }),
+      slot('squat', 3, 4, 4, { rpe: 7.5, top: 3, topRpe: 8, note: 'Format force : une série lourde de 3, puis 3 séries de 4 à environ 90 % de sa charge.' }),
       slot('pendulum', 3, 6, 9),
       slot('rdl', 3, 6, 9, { rpe: 8.5 }),
       slot('legExt', 3, 6, 9),
@@ -415,14 +415,14 @@ const LIGHT_RPE = 8.5;
 function muscuSession(week: number, key: SessionKey, muscu?: Profile['muscu'], only?: Slot[]): PlannedSession {
   const plan = dayPlan(key, muscu);
   const light = week === LIGHT_WEEK;
-  const exercises = (only ?? plan.slots).map((x) =>
-    acc(x.exId, x.sets, x.reps, x.repsMax, {
-      group: x.group,
-      note: x.note,
-      max: x.max,
-      rpe: light && x.rpe !== FAIL ? Math.min(x.rpe ?? NEAR_FAILURE, LIGHT_RPE) : x.rpe,
-    }),
-  );
+  const exercises = (only ?? plan.slots).map((x) => {
+    const rpe = light && x.rpe !== FAIL ? Math.min(x.rpe ?? NEAR_FAILURE, LIGHT_RPE) : x.rpe;
+    const ex = acc(x.exId, x.sets, x.reps, x.repsMax, { group: x.group, note: x.note, max: x.max, rpe });
+    if (!x.top) return ex;
+    // Strength format: the heavy set leads, the others follow it at about 90 %.
+    const top: PlannedSet = { id: `${x.exId}-top`, type: 'top', reps: x.top, rpe: x.topRpe ?? 8 };
+    return { ...ex, sets: [top, ...ex.sets.map((p) => ({ ...p, type: 'work' as const }))] };
+  });
   return {
     key,
     block: 0,

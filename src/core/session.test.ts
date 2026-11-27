@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PlannedExercise, SessionLog } from './types';
 import { currentStep, doLater, doNow, flowSteps, leaveSuperset, logSet, pendingExercises, prefill, supersetWith } from './session';
 import { tonnage } from './lifting';
+import { buildSession } from './program';
 
 const ex = (exId: string, n = 2, group?: string): PlannedExercise => ({
   exId,
@@ -66,6 +67,38 @@ describe('session order', () => {
     const s = leaveSuperset(session([ex('A', 2, 'a'), ex('B', 2, 'a'), ex('C')]), 0, 1);
     expect(order(s)).toBe('B A C');
     expect(s.plan.every((e) => !e.group)).toBe(true);
+  });
+});
+
+describe('strength format on the squat', () => {
+  const plan = () => buildSession(0, 2, 'fri').exercises.slice(0, 1);
+  const done = (s: SessionLog, at: number) => ({ ...s, status: 'done' as const, startedAt: at, block: 0 });
+
+  it('plans one heavy set of 3, then 3 sets of 4', () => {
+    const sq = plan()[0];
+    expect(sq.exId).toBe('squat');
+    expect(sq.sets.map((x) => `${x.type}${x.reps}@${x.rpe}`)).toEqual(['top3@8', 'work4@7.5', 'work4@7.5', 'work4@7.5']);
+  });
+
+  it('puts the back-off sets at 90 % of the heavy set', () => {
+    let s = session(plan());
+    s = logSet(s, { ex: 0, set: 0 }, { load: 120, reps: 3, rpe: 8 }, 1);
+    expect(prefill(s, { ex: 0, set: 1 }, tm, [])).toMatchObject({ load: 107.5, reps: 4 });
+    s = logSet(s, { ex: 0, set: 1 }, { load: 110, reps: 4, rpe: 7 }, 2);
+    expect(prefill(s, { ex: 0, set: 2 }, tm, []).load).toBe(110);
+  });
+
+  it('adds 2.5 kg to the heavy set when it went at RPE 8 or less, else keeps it', () => {
+    const easy = done(logSet(session(plan()), { ex: 0, set: 0 }, { load: 120, reps: 3, rpe: 8 }, 1), 1);
+    expect(prefill(session(plan()), { ex: 0, set: 0 }, tm, [easy])).toMatchObject({ load: 122.5, reps: 3 });
+    const hard = done(logSet(session(plan()), { ex: 0, set: 0 }, { load: 120, reps: 3, rpe: 9 }, 1), 1);
+    expect(prefill(session(plan()), { ex: 0, set: 0 }, tm, [hard])).toMatchObject({ load: 120, reps: 3 });
+  });
+
+  it('estimates the first heavy set from his recent squats', () => {
+    const old = { ...session([ex('squat', 1)]), block: 1, status: 'done' as const, startedAt: 1 };
+    const past = { ...old, sets: [{ plannedId: 'x', exId: 'squat', type: 'work' as const, load: 120, reps: 3, rpe: 8, at: 1 }] };
+    expect(prefill(session(plan()), { ex: 0, set: 0 }, tm, [past])).toMatchObject({ load: 120, first: true });
   });
 });
 

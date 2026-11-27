@@ -3,7 +3,7 @@ import { activeSession, beginSession, doneSessions, useApp } from '../state/stor
 import { DAY_LABEL, dayKey, shortDate, type ISODate } from '../core/dates';
 import { buildSession, estimateMinutes, hardSets, locate, MUSCU_KEYS, planRows, SESSION_KEYS, weekDates, type PlanRow } from '../core/program';
 import { effortText, plural, repsText, SET_LABEL } from '../core/labels';
-import { lastBest, liftOf } from '../core/session';
+import { lastBest, liftOf, strengthLoads } from '../core/session';
 import type { LiftKey, PlannedExercise, PlannedSession, SessionKey, SessionLog } from '../core/types';
 import { EXERCISES } from '../data/exercises';
 import { kg, Segmented } from '../ui/controls';
@@ -195,7 +195,12 @@ function rowsOf(e: PlannedExercise, tm: Record<LiftKey, number>, history: Sessio
   const last = accessory ? lastBest(e.exId, history, !!liftOf(e.exId)) : undefined;
   const heavy = rows.find((r) => r.type === 'top' || r.type === 'test') ?? rows.find((r) => r.type === 'work' || r.type === 'acc');
   const effort = accessory && heavy?.rpe !== undefined ? effortText(heavy.rpe) : undefined;
-  const loadText = (r: PlanRow) => (r.load !== undefined ? `${kg(r.load)} kg` : last ? `${kg(last.load)} kg` : 'Charge à trouver');
+  const strength = e.sets.some((x) => x.type === 'top' && x.pct === undefined) ? strengthLoads(e, tm, history) : undefined;
+  const own = (r: PlanRow) => r.load ?? (r.type === 'top' ? strength?.top : r.type === 'work' ? strength?.work : undefined);
+  const loadText = (r: PlanRow) => {
+    const load = own(r);
+    return load !== undefined ? `${kg(load)} kg` : last ? `${kg(last.load)} kg` : 'Charge à trouver';
+  };
   return { rows, accessory, effort, loadText };
 }
 
